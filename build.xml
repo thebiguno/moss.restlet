@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!DOCTYPE project [
+<!ENTITY baseBuild SYSTEM "../ca.digitalcave.build/build.xml.inc">
+]>
+<project name="Moss Restlet" default="jar" basedir=".">
+
+	<!-- Set up all the project specific properties -->
+	<property name="PROJECT_NAME" value="Moss Restley Functions"/>
+	<property name="PROJECT_SHORT_NAME" value="moss-restlet"/>
+	<property name="PROJECT_DESCRIPTION" value="Restlet support"/>
+	<property name="PROJECT_COPYRIGHT" value="Copyright Wyatt Olson and Warren Janssens"/>
+
+	<path id="classpath">
+		<fileset dir="lib" includes="**/*.jar"/>
+	</path>
+	
+	&baseBuild;
+
+</project>
