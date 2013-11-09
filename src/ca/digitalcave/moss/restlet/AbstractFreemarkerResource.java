@@ -18,7 +18,15 @@ import freemarker.template.Configuration;
 
 public abstract class AbstractFreemarkerResource extends ServerResource {
 
-	protected Representation get(Variant variant) throws ResourceException {
+	@Override
+	protected void doInit() throws ResourceException {
+		getVariants().add(new Variant(MediaType.TEXT_HTML));
+		getVariants().add(new Variant(MediaType.APPLICATION_JAVASCRIPT));
+		getVariants().add(new Variant(MediaType.IMAGE_ALL));
+		getVariants().add(new Variant(MediaType.ALL));
+	}
+	
+	public Representation get(Variant variant) throws ResourceException {
 		final String path = new Reference(getRootRef(), getOriginalRef()).getRemainingPart(true, false);
 				
 		if (path.startsWith("WEB-INF")) throw new ResourceException(Status.CLIENT_ERROR_NOT_FOUND);
