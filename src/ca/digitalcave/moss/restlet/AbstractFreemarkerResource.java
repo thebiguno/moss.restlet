@@ -19,6 +19,11 @@ import freemarker.template.Configuration;
 public abstract class AbstractFreemarkerResource extends ServerResource {
 
 	@Override
+	/**
+	 * Sets up the mime types.  By default the variants for Text/HTML, Application/Javascript,
+	 * Image/All, and All are added.  If you filter on different media types in isTransform(), 
+	 * you may need to modify the order of these.
+	 */
 	protected void doInit() throws ResourceException {
 		getVariants().add(new Variant(MediaType.TEXT_HTML));
 		getVariants().add(new Variant(MediaType.APPLICATION_JAVASCRIPT));
@@ -44,12 +49,32 @@ public abstract class AbstractFreemarkerResource extends ServerResource {
 		}
 	}
 
+	/**
+	 * This method must return your Freemarker configuration object.  For instance, 
+	 * return ((HelpdeskApplication) getApplication()).getFreemarkerConfiguration();
+	 * @return
+	 */
 	abstract protected Configuration getFreemarkerConfig();
 	
+	/**
+	 * This method determines whether this resource is supposed to transform the file through Freemarker, or
+	 * just return it without any changes.  Returns true to transform, false otherwise.
+	 * 
+	 * The default implementation is to return true if the variant is either Text/HTML or Application/Javascript.
+	 * @param variant
+	 * @return
+	 */
 	protected boolean isTransform(Variant variant){
 		return variant.getMediaType().equals(MediaType.TEXT_HTML) || variant.getMediaType().equals(MediaType.APPLICATION_JAVASCRIPT);
 	}
 	
+	/**
+	 * Returns the data model to inject into the freemarker template.  
+	 * 
+	 * By default, this method injects the Restlet User object under key "user", and the HTTP request 
+	 * attributes under key "requestAttributes".  Override this method if you need more information in your data model.
+	 * @return
+	 */
 	protected HashMap<String, Object> getDataModel(){
 		final HashMap<String, Object> dataModel = new HashMap<String, Object>();
 		dataModel.put("user", getClientInfo().getUser());
