@@ -77,6 +77,9 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			// TODO policies could be enforced here such as strength, dictionary words or password history
 			final String hash = new Hash().generate(password);
 			updateSecret(cr.getIdentifier(), hash);
+		} else {
+			result.put("success", false);
+			result.put("msg", "Unknown action " + action);
 		}
 
 		return new WriterRepresentation(MediaType.APPLICATION_JSON) {
