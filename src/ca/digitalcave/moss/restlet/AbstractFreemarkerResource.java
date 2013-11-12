@@ -21,7 +21,7 @@ public abstract class AbstractFreemarkerResource extends ServerResource {
 	@Override
 	/**
 	 * Sets up the mime types.  By default the variants for Text/HTML, Application/Javascript,
-	 * Image/All, and All are added.  If you filter on different media types in isTransform(), 
+	 * and Image/All are added.  If you filter on different media types in isTransform(), 
 	 * you may need to modify the order of these.
 	 */
 	protected void doInit() throws ResourceException {
@@ -29,7 +29,6 @@ public abstract class AbstractFreemarkerResource extends ServerResource {
 		getVariants().add(new Variant(MediaType.TEXT_CSS));
 		getVariants().add(new Variant(MediaType.APPLICATION_JAVASCRIPT));
 		getVariants().add(new Variant(MediaType.IMAGE_ALL));
-		getVariants().add(new Variant(MediaType.ALL));
 	}
 	
 	public Representation get(Variant variant) throws ResourceException {
