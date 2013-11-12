@@ -34,8 +34,8 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 
 	@Override
 	protected void doInit() throws ResourceException {
-		final Variant variant = new Variant(MediaType.TEXT_HTML);
-		getVariants().add(variant);
+		getVariants().add(new Variant(MediaType.TEXT_HTML));
+		getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 	}
 	
 	@Override
