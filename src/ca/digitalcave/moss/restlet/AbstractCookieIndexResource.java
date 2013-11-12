@@ -32,8 +32,6 @@ import ca.digitalcave.moss.crypto.Hash;
 
 public abstract class AbstractCookieIndexResource extends ServerResource {
 
-	final String mobile = "android|blackberry|iphone|ipod|iemobile|opera mobile|palmos|webos|googlebot-mobile";
-
 	@Override
 	protected void doInit() throws ResourceException {
 		final Variant variant = new Variant(MediaType.TEXT_HTML);
