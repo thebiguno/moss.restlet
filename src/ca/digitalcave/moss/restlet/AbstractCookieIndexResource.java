@@ -24,10 +24,10 @@ import org.restlet.representation.Variant;
 import org.restlet.representation.WriterRepresentation;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.ServerResource;
+import org.restlet.security.User;
 import org.xml.sax.SAXException;
 
 import ca.digitalcave.moss.crypto.Hash;
-import ca.digitalcave.moss.restlet.model.Account;
 
 
 public abstract class AbstractCookieIndexResource extends ServerResource {
@@ -49,8 +49,8 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 		result.put("success", true);
 		
 		if ("login".equals(action)) {
-			final Account account = (Account) getClientInfo().getUser();
-			if (account == null) {
+			final User user = (User) getClientInfo().getUser();
+			if (user == null) {
 				result.put("success", false);
 				result.put("msg", "Invalid Credentials");
 			}
@@ -62,14 +62,14 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 				result.put("msg", "Not Permitted");
 			}
 		} else if (isAllowEnrole() && "enrole".equals(action)) {
-			final Account account = new Account();
-			account.setIdentifier(cr.getIdentifier());
-			account.setEmail(cr.getParameters().getFirstValue("email"));
-			account.setFirstName(cr.getParameters().getFirstValue("firstName"));
-			account.setLastName(cr.getParameters().getFirstValue("lastName"));
-			account.setActivationKey(UUID.randomUUID().toString());
-			insertAccount(account);
-			sendEmail(account.getEmail(), account.getActivationKey());
+			final User user = new User();
+			user.setIdentifier(cr.getIdentifier());
+			user.setEmail(cr.getParameters().getFirstValue("email"));
+			user.setFirstName(cr.getParameters().getFirstValue("firstName"));
+			user.setLastName(cr.getParameters().getFirstValue("lastName"));
+			final String activationKey = UUID.randomUUID().toString();
+			insertUser(user, activationKey);
+			sendEmail(user.getEmail(), activationKey);
 		} else if (isAllowReset() && "reset".equals(action)) {
 			final String activationKey = UUID.randomUUID().toString();
 			updateActivationKey(cr.getIdentifier(), activationKey);
@@ -106,11 +106,11 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	}
 	
 	/**
-	 * Implement this to persist the provided account to the database
+	 * Implement this to persist the provided user and activation key
 	 * @param account
 	 * @throws ResourceException
 	 */
-	protected abstract void insertAccount(Account account) throws ResourceException;
+	protected abstract void insertUser(User user, String activationKey) throws ResourceException;
 	
 	/**
 	 * Implement this to set an activation key for the provided identifier
