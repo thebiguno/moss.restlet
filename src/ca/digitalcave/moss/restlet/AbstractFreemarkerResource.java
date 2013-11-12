@@ -26,6 +26,7 @@ public abstract class AbstractFreemarkerResource extends ServerResource {
 	 */
 	protected void doInit() throws ResourceException {
 		getVariants().add(new Variant(MediaType.TEXT_HTML));
+		getVariants().add(new Variant(MediaType.TEXT_CSS));
 		getVariants().add(new Variant(MediaType.APPLICATION_JAVASCRIPT));
 		getVariants().add(new Variant(MediaType.IMAGE_ALL));
 		getVariants().add(new Variant(MediaType.ALL));
