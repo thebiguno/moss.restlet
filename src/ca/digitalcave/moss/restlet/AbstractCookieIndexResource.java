@@ -75,7 +75,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 		} else if ("activate".equals(action)) {
 			final String password = new String(cr.getSecret());
 			// TODO policies could be enforced here such as strength, dictionary words or password history
-			final String hash = new Hash().generate(password);
+			final String hash = getHash(password);
 			updateSecret(cr.getIdentifier(), hash);
 		} else {
 			result.put("success", false);
@@ -122,7 +122,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	protected abstract void updateActivationKey(String identifier, String activationKey) throws ResourceException;
 	
 	/**
-	 * Implement this to set the hashed secret for the provided identifier
+	 * Implement this to set the hashed secret for the provided identifier.
 	 * @param identifier
 	 * @param hashedSecret
 	 * @throws ResourceException
@@ -174,7 +174,16 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 		return false;
 	}
 
-
+	/**
+	 * Hashes the given password using the default hash algorithm and parameters in moss crypto's Hash 
+	 * object.  Override this method to use a different hash algorithm.
+	 * @param password
+	 * @return
+	 */
+	protected String getHash(String password){
+		return new Hash().generate(password);
+	}
+	
 	/**
 	 * Sends the email.  This uses the configuration parameters set in getConfig().  In particular, the following 
 	 * parameters are respected, included here along with their defaults (which would be used if getConfig() is not
@@ -187,10 +196,11 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	 * 		mail.smtp.password, null,
 	 * 		mail.smtp.starttls.enable, "false"
 	 * 
+	 * Override this method to use a completely different method for sending mail.
 	 * @param email
 	 * @param activationKey
 	 */
-	private void sendEmail(final String email, final String activationKey) {
+	protected void sendEmail(final String email, final String activationKey) {
 //		System.out.println(activationKey);
 //		if (true) return;
 //		
