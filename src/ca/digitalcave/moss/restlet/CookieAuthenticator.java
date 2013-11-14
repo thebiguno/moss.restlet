@@ -32,6 +32,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	private volatile int delay = 1500;
 	private volatile int maxCookieAge = -1;
 	private volatile int maxTokenAge = Integer.MAX_VALUE;
+	private volatile boolean secure = false;
 
 	public static final String ACTION_LOGIN = "login";
 	public static final String ACTION_LOGOUT = "logout";
@@ -169,6 +170,8 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			final CookieSetting credentialsCookie = getCredentialsCookie(request, response);
 			credentialsCookie.setValue(new Crypto().encrypt(key, value));
 			credentialsCookie.setMaxAge(maxCookieAge);
+			credentialsCookie.setSecure(secure);
+			credentialsCookie.setAccessRestricted(true);
 			return super.authenticated(request, response);
 		} catch (CryptoException e) {
 			getLogger().log(Level.WARNING, "Unable to set cookie", e);
@@ -316,5 +319,12 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	}
 	public void setDelay(int delay) {
 		this.delay = delay;
+	}
+	
+	public void setSecure(boolean secure) {
+		this.secure = secure;
+	}
+	public boolean isSecure() {
+		return secure;
 	}
 }
