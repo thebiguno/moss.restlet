@@ -76,7 +76,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			final String password = new String(cr.getSecret());
 			// TODO policies could be enforced here such as strength, dictionary words or password history
 			final String hash = getHash(password);
-			updateSecret(cr.getIdentifier(), hash);
+			updateSecret(cr.getIdentifier(), cr.getParameters().getFirstValue("activationKey"), hash);
 		} else {
 			result.put("success", false);
 			result.put("msg", "Unknown action " + action);
@@ -122,12 +122,14 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	protected abstract void updateActivationKey(String identifier, String activationKey) throws ResourceException;
 	
 	/**
-	 * Implement this to set the hashed secret for the provided identifier.
+	 * Implement this to set the hashed secret for the provided identifier.  This method MUST verify that the activation key
+	 * is valid for the given identifier.
 	 * @param identifier
+	 * @param activationKey
 	 * @param hashedSecret
 	 * @throws ResourceException
 	 */
-	protected abstract void updateSecret(String identifier, String hashedSecret) throws ResourceException;
+	protected abstract void updateSecret(String identifier, String activationKey, String hashedSecret) throws ResourceException;
 	
 	/**
 	 * Override this to use the JsonFactory provided in the main application.  The default implementation

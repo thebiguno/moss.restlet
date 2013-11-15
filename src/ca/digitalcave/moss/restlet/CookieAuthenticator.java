@@ -272,6 +272,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			cr.getParameters().add("lastName", form.getFirstValue("lastName"));
 		} else if (ACTION_ACTIVATE.equals(action)) {
 			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
+			cr.getParameters().add("activationKey", form.getFirstValue("identifier"));
 		} else if (ACTION_IMPERSONATE.equals(action)) {
 			cr = parse(request.getCookies().getFirst(cookieName).getValue());
 			cr.getParameters().add("impersonate", form.getFirstValue("impersonate"));
