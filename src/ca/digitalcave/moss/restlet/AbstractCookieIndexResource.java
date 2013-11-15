@@ -71,7 +71,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 		} else if (isAllowReset() && "reset".equals(action)) {
 			final String activationKey = UUID.randomUUID().toString();
 			updateActivationKey(cr.getIdentifier(), activationKey);
-			sendEmail(cr.getParameters().getFirstValue("email"), activationKey);
+			sendEmail(getClientInfo().getUser().getEmail(), activationKey);
 		} else if ("activate".equals(action)) {
 			final String password = new String(cr.getSecret());
 			// TODO policies could be enforced here such as strength, dictionary words or password history
@@ -203,9 +203,6 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	 * @param activationKey
 	 */
 	protected void sendEmail(final String email, final String activationKey) {
-//		System.out.println(activationKey);
-//		if (true) return;
-//		
 		final Properties config = getConfig();
 		final SaxRepresentation entity = new SaxRepresentation() {
 			@Override
@@ -215,7 +212,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 					w.startElement("email");
 					w.startElement("head");
 					w.dataElement("subject", "Account activation");
-					w.dataElement("from", config.getProperty("mail.smtp.from", "Local System"));
+					w.dataElement("from", config.getProperty("mail.smtp.from", "localhost"));
 					w.dataElement("to", email);
 					w.endElement("head");
 					w.startElement("body");
