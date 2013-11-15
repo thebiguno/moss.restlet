@@ -71,7 +71,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 		} else if (isAllowReset() && "reset".equals(action)) {
 			final String activationKey = UUID.randomUUID().toString();
 			updateActivationKey(cr.getIdentifier(), activationKey);
-			sendEmail(getClientInfo().getUser().getEmail(), activationKey);
+			if (getClientInfo().getUser() != null) sendEmail(getClientInfo().getUser().getEmail(), activationKey);
 		} else if ("activate".equals(action)) {
 			final String password = new String(cr.getSecret());
 			// TODO policies could be enforced here such as strength, dictionary words or password history
