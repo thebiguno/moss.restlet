@@ -1,5 +1,6 @@
 package ca.digitalcave.moss.restlet;
 
+import java.io.IOException;
 import java.security.Key;
 import java.util.Collections;
 import java.util.Map;
@@ -265,11 +266,13 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			}
 		} else if (ACTION_RESET.equals(action)) {
 			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
+			request.getAttributes().put("form", form);
 		} else if (ACTION_ENROLE.equals(action)) {
 			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
 			cr.getParameters().add("email", form.getFirstValue("email"));
 			cr.getParameters().add("firstName", form.getFirstValue("firstName"));
 			cr.getParameters().add("lastName", form.getFirstValue("lastName"));
+			request.getAttributes().put("form", form);
 		} else if (ACTION_ACTIVATE.equals(action)) {
 			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
 			cr.getParameters().add("activationKey", form.getFirstValue("identifier"));
