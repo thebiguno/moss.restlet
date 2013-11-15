@@ -71,16 +71,12 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			user.setLastName(cr.getParameters().getFirstValue("lastName"));
 			final String activationKey = UUID.randomUUID().toString();
 			insertUser(user, activationKey);
-			sendEmail(user.getEmail(), activationKey);
+			sendActivationKey(user.getEmail(), activationKey);
 		} else if (isAllowReset() && "reset".equals(action)) {
 			final String activationKey = UUID.randomUUID().toString();
 			updateActivationKey(cr.getIdentifier(), activationKey);
 			//Send the email in a different thread so that the time taken to send the email does not help identify valid accounts
-			new Thread(new Runnable() {
-				public void run() {
-					if (getClientInfo().getUser() != null) sendEmail(getClientInfo().getUser().getEmail(), activationKey);
-				}
-			}).start();
+			new Thread(new Runnable() { public void run() { if (getClientInfo().getUser() != null) sendActivationKey(getClientInfo().getUser().getEmail(), activationKey); } }).start();
 		} else if ("activate".equals(action)) {
 			final String password = new String(cr.getSecret());
 			// TODO policies could be enforced here such as strength, dictionary words or password history
@@ -211,7 +207,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	 * @param email
 	 * @param activationKey
 	 */
-	protected void sendEmail(final String email, final String activationKey) {
+	protected void sendActivationKey(final String email, final String activationKey) {
 		final Properties config = getConfig();
 		final SaxRepresentation entity = new SaxRepresentation() {
 			@Override
