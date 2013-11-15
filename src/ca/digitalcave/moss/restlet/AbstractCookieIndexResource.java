@@ -27,7 +27,7 @@ import org.restlet.resource.ServerResource;
 import org.restlet.security.User;
 import org.xml.sax.SAXException;
 
-import ca.digitalcave.moss.crypto.Hash;
+import ca.digitalcave.moss.crypto.MossHash;
 
 
 public abstract class AbstractCookieIndexResource extends ServerResource {
@@ -183,7 +183,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	 * @return
 	 */
 	protected String getHash(String password){
-		return new Hash().generate(password);
+		return new MossHash().generate(password);
 	}
 	
 	/**
