@@ -192,6 +192,52 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	}
 	
 	/**
+	 * Returns a representation which provides the email XML file, in a structure as follows:
+	 * 
+	 * 	<?xml version="1.0" encoding="ISO-8859-1" ?>
+	 * 	<email>
+	 * 		<head>
+	 * 			<subject>Account activation</subject>
+	 * 			<from>support@restlet.org</from>
+	 * 			<to>user@domain.com</to>
+	 * 			<cc>log@restlet.org</cc>
+	 * 		</head>
+	 * 		<body><![CDATA[Your account was successfully created!]]></body>
+	 * 	</email>
+	 * 
+	 * @param email
+	 * @param activationKey
+	 * @return
+	 */
+	protected Representation getEmailRepresentation(final String email, final String activationKey){
+		final SaxRepresentation entity = new SaxRepresentation() {
+			@Override
+			public void write(XmlWriter w) throws IOException {
+				try {
+					w.startDocument();
+					w.startElement("email");
+					w.startElement("head");
+					w.dataElement("subject", getConfig().getProperty("mail.subject", "Account activation"));
+					w.dataElement("from", getConfig().getProperty("mail.smtp.from", "user@localhost"));
+					w.dataElement("to", email);
+					w.endElement("head");
+					w.startElement("body");
+					w.characters("Here is the activation key you requested: ");
+					w.characters(activationKey);
+					w.characters("\nIf you did not request this activation key please ignore this email.\n");
+					w.endElement("body");
+					w.endElement("email");
+					w.endDocument();
+				} catch (SAXException e) {
+					throw new IOException(e);
+				}
+			}
+		};
+		entity.setCharacterSet(CharacterSet.ISO_8859_1);
+		return entity;
+	}
+	
+	/**
 	 * Sends the email.  This uses the configuration parameters set in getConfig().  In particular, the following 
 	 * parameters are respected, included here along with their defaults (which would be used if getConfig() is not
 	 * overridden, or if the properties returned did not include these properties):
@@ -209,33 +255,10 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	 */
 	protected void sendActivationKey(final String email, final String activationKey) {
 		final Properties config = getConfig();
-		final SaxRepresentation entity = new SaxRepresentation() {
-			@Override
-			public void write(XmlWriter w) throws IOException {
-				try {
-					w.startDocument();
-					w.startElement("email");
-					w.startElement("head");
-					w.dataElement("subject", "Account activation");
-					w.dataElement("from", config.getProperty("mail.smtp.from", "localhost"));
-					w.dataElement("to", email);
-					w.endElement("head");
-					w.startElement("body");
-					w.characters("Here is the activation key you requested: ");
-					w.characters(activationKey);
-					w.characters("\nIf you did not request this activation key please ignore this email.\n");
-					w.endElement("body");
-					w.endElement("email");
-					w.endDocument();
-				} catch (SAXException e) {
-					throw new IOException(e);
-				}
-			}
-		};
-		entity.setCharacterSet(CharacterSet.ISO_8859_1);
+
 		final String url = "smtp://" + config.getProperty("mail.smtp.host", "localhost") + ":" + config.getProperty("mail.smtp.port", "25");
 		final Request request = new Request(Method.POST, url);
-		request.setEntity(entity);
+		request.setEntity(getEmailRepresentation(email, activationKey));
 		if ("true".equals(config.getProperty("mail.smtp.auth", "false"))) {
 			final ChallengeResponse cr = new ChallengeResponse(ChallengeScheme.SMTP_PLAIN, config.getProperty("mail.smtp.username"), config.getProperty("mail.smtp.password"));
 			request.setChallengeResponse(cr);
