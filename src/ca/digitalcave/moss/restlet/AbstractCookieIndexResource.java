@@ -43,9 +43,9 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 		final ChallengeResponse cr = getRequest().getChallengeResponse();
 		final String action = cr.getParameters().getFirstValue("action");
 		
-		//Delay a random amount of time, between 0 and 1000 millis, so that user enumeration attacks relying on post
+		//Delay a random amount of time, between 0 and 500 millis, so that user enumeration attacks relying on post
 		// response time are more difficult
-		try {long delay = (long) (Math.random() * 1000); System.out.println(delay); Thread.sleep(delay);} catch (Throwable e){}
+		try { Thread.sleep((long) (Math.random() * 500));} catch (Throwable e){}
 		
 		final HashMap<String, Object> result = new HashMap<String, Object>();
 		result.put("success", true);
@@ -76,7 +76,12 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			final String activationKey = UUID.randomUUID().toString();
 			updateActivationKey(cr.getIdentifier(), activationKey);
 			//Send the email in a different thread so that the time taken to send the email does not help identify valid accounts
-			new Thread(new Runnable() { public void run() { if (getClientInfo().getUser() != null) sendActivationKey(getClientInfo().getUser().getEmail(), activationKey); } }).start();
+			if (getClientInfo().getUser() != null) {
+				final Runnable emailRunnable = new Runnable() { public void run() { sendActivationKey(getClientInfo().getUser().getEmail(), activationKey); } };
+				final Thread emailThread = new Thread(emailRunnable, "Email");
+				emailThread.setDaemon(false);
+				emailThread.start();
+			}
 		} else if ("activate".equals(action)) {
 			final String password = new String(cr.getSecret());
 			// TODO policies could be enforced here such as strength, dictionary words or password history
