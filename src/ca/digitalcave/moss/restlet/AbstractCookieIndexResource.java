@@ -24,6 +24,7 @@ import org.restlet.resource.ServerResource;
 import org.restlet.security.User;
 import org.xml.sax.SAXException;
 
+import ca.digitalcave.moss.crypto.MossHash;
 import ca.digitalcave.moss.restlet.CookieAuthenticator.Action;
 
 
@@ -111,9 +112,12 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	/**
 	 * Implement this to set the hashed secret for the provided identifier.
 	 * This method MUST verify that the activation key is valid for the given identifier to prevent a password reset attack.
-	 * The implementation SHOULD hash the secret in a manner verifiable by the Verifier.
 	 */
-	protected abstract void updateSecret(String identifier, String activationKey, String secret);
+	protected abstract void updateSecret(String identifier, String activationKey, String hash);
+	
+	protected String getHash(String secret) {
+		return new MossHash().generate(secret);
+	}
 	
 	/**
 	 * Default implementation of getConfig(), returning an empty properties file.  
