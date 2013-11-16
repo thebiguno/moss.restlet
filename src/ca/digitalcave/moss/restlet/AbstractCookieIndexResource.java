@@ -181,7 +181,9 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 				if (activationKey != null) {
 					w.write("\"key\":");
 					w.write(activationKey);
+					w.write("\"");
 				}
+				w.write("}");
 				w.flush();
 			}
 		};

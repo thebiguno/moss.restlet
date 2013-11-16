@@ -197,6 +197,9 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			result.setSecret(p.getFirstValue("secret"));
 			result.getParameters().set("expires", Long.toString(expires));
 			result.getParameters().set("authenticator", p.getFirstValue("authenticator"));
+			if (isAllowRemember()) {
+				result.getParameters().set("remember", p.getFirstValue("remember"));
+			}
 			return result;
 		} catch (Exception e) {
 			getLogger().log(Level.INFO, "Unable to decrypt cookie credentials", e);
@@ -226,6 +229,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		final String authenticator = cr.getParameters().getFirstValue("authenticator");
 		if (authenticator != null) p.set("authenticator", authenticator);
 
+		System.out.println(p.getQueryString());
 		return p.getQueryString();
 	}
 
@@ -253,7 +257,9 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		if (action == Action.LOGIN) {
 			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
 			cr.getParameters().add("impersonate", form.getFirstValue("impersonate"));
-			cr.getParameters().add("remember", form.getFirstValue("remember"));
+			if (isAllowRemember()) {
+				cr.getParameters().add("remember", form.getFirstValue("remember") != null ? "true" : "false");
+			}
 		} else if (action == Action.LOGOUT) {
 			cr = parse(request.getCookies().getFirst(cookieName).getValue());
 			
