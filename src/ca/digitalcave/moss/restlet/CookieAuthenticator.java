@@ -210,7 +210,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		try { expires = Long.parseLong(cr.getParameters().getFirstValue("expires")); } catch (Throwable e) {}
 		if (issued + 60000 < System.currentTimeMillis()) {
 			issued = System.currentTimeMillis();
-			expires = System.currentTimeMillis() + (maxExpiryAge * 1000);
+			expires = System.currentTimeMillis() + ((long) maxExpiryAge * 1000);
 		}
 		
 		final Form p = new Form();
