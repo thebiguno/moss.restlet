@@ -2,12 +2,9 @@ package ca.digitalcave.moss.restlet;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.HashMap;
 import java.util.Properties;
 import java.util.UUID;
 
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonGenerator;
 import org.restlet.Client;
 import org.restlet.Request;
 import org.restlet.data.ChallengeResponse;
@@ -27,7 +24,7 @@ import org.restlet.resource.ServerResource;
 import org.restlet.security.User;
 import org.xml.sax.SAXException;
 
-import ca.digitalcave.moss.crypto.MossHash;
+import ca.digitalcave.moss.restlet.CookieAuthenticator.Action;
 
 
 public abstract class AbstractCookieIndexResource extends ServerResource {
@@ -41,160 +38,110 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	@Override
 	protected Representation post(Representation entity, Variant variant) throws ResourceException {
 		final ChallengeResponse cr = getRequest().getChallengeResponse();
-		final String action = cr.getParameters().getFirstValue("action");
 		
 		// Delay a random amount of time, between 0 and 500 millis, so that user enumeration attacks relying on post
 		// response time are more difficult
 		try { Thread.sleep((long) (Math.random() * 500));} catch (Throwable e){}
 		
-		final HashMap<String, Object> result = new HashMap<String, Object>();
-		result.put("success", true);
+		final Action action = Action.find(cr.getParameters().getFirstValue("action"));
+		boolean success = true;
+		String loginActivationKey = null;
 		
-		if ("login".equalsIgnoreCase(action)) {
+		if (action == Action.LOGIN) {
 			final User user = (User) getClientInfo().getUser();
 			if (user == null) {
-				result.put("success", false);
-				result.put("msg", "Invalid Credentials");
+				success = false;
 			}
-
 			if (isPasswordExpired()) {
-				final String activationKey = UUID.randomUUID().toString();
-				updateActivationKey(user.getIdentifier(), activationKey);
-				result.put("activationKey", activationKey);
+				loginActivationKey = UUID.randomUUID().toString();
+				updateActivationKey(user.getIdentifier(), loginActivationKey);
 			}
-		} else if (isAllowImpersonate() && "impersonate".equalsIgnoreCase(action)) {
-			if (cr.getParameters().getFirstValue("authenticator") == null) {
-				result.put("success", false);
-				result.put("msg", "Not Permitted");
+		} else if (action == Action.IMPERSONATE) {
+			if (isAllowImpersonate() == false || cr.getParameters().getFirstValue("authenticator") == null) {
+				success = false;
 			}
-		} else if (isAllowEnrole() && ("register".equalsIgnoreCase(action) || "enrole".equalsIgnoreCase(action))) {
+		} else if (isAllowEnrole() && action == Action.REGISTER) {
 			final User user = new User();
 			user.setIdentifier(cr.getIdentifier());
 			user.setEmail(cr.getParameters().getFirstValue("email"));
 			user.setFirstName(cr.getParameters().getFirstValue("firstName"));
 			user.setLastName(cr.getParameters().getFirstValue("lastName"));
 			final String activationKey = UUID.randomUUID().toString();
-			insertUser(user, activationKey);
-			sendActivationKey(user.getEmail(), activationKey);
-		} else if (isAllowReset() && "reset".equalsIgnoreCase(action)) {
+			if (insertUser(user, activationKey)) {
+				sendActivationKey(user.getEmail(), activationKey);
+			}
+			// success is always true to prevent user enumeration attacks
+		} else if (isAllowReset() && action == Action.RESET) {
 			final String activationKey = UUID.randomUUID().toString();
 			updateActivationKey(cr.getIdentifier(), activationKey);
-			// Send the email in a different thread so that the time taken to send the email does not help identify valid accounts
 			if (getClientInfo().getUser() != null) {
-				final Runnable emailRunnable = new Runnable() { public void run() { sendActivationKey(getClientInfo().getUser().getEmail(), activationKey); } };
-				final Thread emailThread = new Thread(emailRunnable, "Email");
-				emailThread.setDaemon(false);
-				emailThread.start();
+				sendActivationKey(getClientInfo().getUser().getEmail(), activationKey);
 			}
-		} else if ("activate".equalsIgnoreCase(action)) {
+			// success is always true to prevent user enumeration attacks
+		} else if (action == Action.ACTIVATE) {
 			final String password = new String(cr.getSecret());
-			if (isValidPassword(password)) {
-				// TODO policies could be enforced here such as strength, dictionary words or password history
-				final String hash = getHash(password);
-				updateSecret(cr.getIdentifier(), cr.getParameters().getFirstValue("activationKey"), hash);
+			success = isValidPassword(password);
+			if (success) {
+				updateSecret(cr.getIdentifier(), cr.getParameters().getFirstValue("activationKey"), password);
+				// success is always true to prevent user enumeration attacks
 			}
-		} else {
-			result.put("success", false);
-			result.put("msg", "Unknown action " + action);
 		}
 
-		return new WriterRepresentation(MediaType.APPLICATION_JSON) {
-			@Override
-			public void write(Writer w) throws IOException {
-				final JsonGenerator g = getJsonFactory().createJsonGenerator(w);
-				g.writeStartObject();
-				g.writeBooleanField("success", (Boolean) result.get("success"));
-				if (result.containsKey("msg")) g.writeStringField("msg", (String) result.get("msg"));
-				if (result.containsKey("key")) g.writeStringField("key", (String) result.get("key"));
-				g.writeObjectFieldStart("errors");
-				if (result.containsKey("secret")) g.writeStringField("secret", (String) result.get("secret"));
-				g.writeEndObject();
-				g.writeEndObject();
-				g.flush();
-			}
-		};
+		return getPostRepresentation(action, success, loginActivationKey);
 	}
 	
 	@Override
 	protected Representation delete(Variant variant) throws ResourceException {
-		// Delete should always work; the request is intercepted by the CookieAuthenticator, and the 
-		// login token is deleted.
+		// Delete should always work; 
+		// the request is intercepted by the CookieAuthenticator, and the login token is deleted.
 		return new StringRepresentation("{success:true}");
 	}
 	
 	/**
-	 * Implement this to persist the provided user and activation key
-	 * @param account
-	 * @throws ResourceException
+	 * Implement this to persist the provided user and activation key.
+	 * @return true if the user was successfully added.
 	 */
-	protected abstract void insertUser(User user, String activationKey) throws ResourceException;
+	protected abstract boolean insertUser(User user, String activationKey);
 	
 	/**
-	 * Implement this to set an activation key for the provided identifier
-	 * @param identifier
-	 * @param activationKey
-	 * @throws ResourceException
+	 * Implement this to set an activation key for the provided identifier.
 	 */
-	protected abstract void updateActivationKey(String identifier, String activationKey) throws ResourceException;
+	protected abstract void updateActivationKey(String identifier, String activationKey);
 	
 	/**
-	 * Implement this to set the hashed secret for the provided identifier.  This method MUST verify that the activation key
-	 * is valid for the given identifier.
-	 * @param identifier
-	 * @param activationKey
-	 * @param hashedSecret
-	 * @throws ResourceException
+	 * Implement this to set the hashed secret for the provided identifier.
+	 * This method MUST verify that the activation key is valid for the given identifier to prevent a password reset attack.
+	 * The implementation SHOULD hash the secret in a manner verifiable by the Verifier.
 	 */
-	protected abstract void updateSecret(String identifier, String activationKey, String hashedSecret) throws ResourceException;
+	protected abstract void updateSecret(String identifier, String activationKey, String secret);
 	
 	/**
-	 * Override this to use the JsonFactory provided in the main application.  The default implementation
-	 * includes a singleton factory.
-	 * @return
-	 */
-	protected JsonFactory getJsonFactory(){
-		if (jsonFactory == null){
-			jsonFactory = new JsonFactory();
-		}
-		return jsonFactory;
-	}
-	private static JsonFactory jsonFactory;
-	
-	/**
-	 * Default implementation of getConfig(), returning an empty properties file.  Default values will be used for
-	 * all properties required.
+	 * Default implementation of getConfig(), returning an empty properties file.  
+	 * Default values will be used for all properties required.
 	 */
 	protected Properties getConfig() {
 		return new Properties();
 	}
 	
 	/**
-	 * Override this method to force password reset; default is false.
-	 * @return
+	 * Override this method to force password reset.
+	 * Default implementation returns false.
 	 */
 	protected boolean isPasswordExpired() {
 		return false;
 	}
 	
 	/**
-	 * Override this method to check password on activation; default is true.
-	 * @return
-	 */
-	protected boolean isValidPassword(String password) {
-		return true;
-	}
-	
-	/**
-	 * Override this method to allow impersonation; default is false.
-	 * @return
+	 * Override this method to allow impersonation.
+	 * Default implementation returns false;
 	 */
 	protected boolean isAllowImpersonate(){
 		return false;
 	}
 
 	/**
-	 * Override this method to allow enrollment; default is false.
-	 * @return
+	 * Override this method to allow registration.
+	 * Default implementation returns false.
 	 */
 	protected boolean isAllowEnrole(){
 		return false;
@@ -202,20 +149,38 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	
 	/**
 	 * Override this method to allow password reset; default is false.
-	 * @return
 	 */
 	protected boolean isAllowReset(){
 		return false;
 	}
-
+	
 	/**
-	 * Hashes the given password using the default hash algorithm and parameters in moss crypto's Hash 
-	 * object.  Override this method to use a different hash algorithm.
-	 * @param password
-	 * @return
+	 * Override this method to enforce password policies such as strength, dictionary words or password history.
+	 * Default implementation returns true.
 	 */
-	protected String getHash(String password){
-		return new MossHash().generate(password);
+	private boolean isValidPassword(String password) {
+		return true;
+	}
+	
+	/**
+	 * Returns the response entity for the post.
+	 * Override this to change the format of the response.
+	 * The default implementation is best suited for ExtJS and Sensha Touch.
+	 */
+	protected Representation getPostRepresentation(final Action action, final boolean success, final String activationKey) {
+		return new WriterRepresentation(MediaType.APPLICATION_JSON) {
+			@Override
+			public void write(Writer w) throws IOException {
+				w.write("{");
+				w.write("\"success\":");
+				w.write(Boolean.toString(success));
+				if (activationKey != null) {
+					w.write("\"key\":");
+					w.write(activationKey);
+				}
+				w.flush();
+			}
+		};
 	}
 	
 	/**
@@ -281,18 +246,26 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	 * @param activationKey
 	 */
 	protected void sendActivationKey(final String email, final String activationKey) {
-		final Properties config = getConfig();
-
-		final String url = "smtp://" + config.getProperty("mail.smtp.host", "localhost") + ":" + config.getProperty("mail.smtp.port", "25");
-		final Request request = new Request(Method.POST, url);
-		request.setEntity(getEmailRepresentation(email, activationKey));
-		if ("true".equals(config.getProperty("mail.smtp.auth", "false"))) {
-			final ChallengeResponse cr = new ChallengeResponse(ChallengeScheme.SMTP_PLAIN, config.getProperty("mail.smtp.username"), config.getProperty("mail.smtp.password"));
-			request.setChallengeResponse(cr);
-		}
+		final Runnable emailRunnable = new Runnable() { 
+			public void run() { 
+				final Properties config = getConfig();
 		
-		final Client client = new Client(getContext().createChildContext(), Protocol.SMTP);
-		client.getContext().getParameters().set("startTls", getConfig().getProperty("mail.smtp.starttls.enable", "false"));
-		client.handle(request);
+				final String url = "smtp://" + config.getProperty("mail.smtp.host", "localhost") + ":" + config.getProperty("mail.smtp.port", "25");
+				final Request request = new Request(Method.POST, url);
+				request.setEntity(getEmailRepresentation(email, activationKey));
+				if ("true".equals(config.getProperty("mail.smtp.auth", "false"))) {
+					final ChallengeResponse cr = new ChallengeResponse(ChallengeScheme.SMTP_PLAIN, config.getProperty("mail.smtp.username"), config.getProperty("mail.smtp.password"));
+					request.setChallengeResponse(cr);
+				}
+				
+				final Client client = new Client(getContext().createChildContext(), Protocol.SMTP);
+				client.getContext().getParameters().set("startTls", getConfig().getProperty("mail.smtp.starttls.enable", "false"));
+				client.handle(request);
+			}
+		};
+		final Thread emailThread = new Thread(emailRunnable, "Email");
+		emailThread.setDaemon(false);
+		emailThread.start();
+
 	}
 }

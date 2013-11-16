@@ -30,17 +30,11 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	private final String interceptPath;
 	private final Key key;
 	private volatile int delay = 1500;
-	private volatile int maxCookieAge = Integer.MAX_VALUE;
-	private volatile int maxTokenAge = Integer.MAX_VALUE;
+	private volatile int maxCookieAge = -1;
+	private volatile int maxExpiryAge = Integer.MAX_VALUE;
 	private volatile boolean secure = false;
+	private volatile boolean allowRemember = false;
 
-	public static final String ACTION_LOGIN = "login";
-	public static final String ACTION_LOGOUT = "logout";
-	public static final String ACTION_IMPERSONATE = "impersonate";
-	public static final String ACTION_ENROLE = "enrole";
-	public static final String ACTION_RESET = "reset";
-	public static final String ACTION_ACTIVATE = "activate";
-	
 	public CookieAuthenticator(Context context, boolean optional, Key key) {
 		this(context, optional, key, "_auth", "/index");
 	}
@@ -70,7 +64,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	 *     <li>Expire Date/Time</li></ul>
 	 * <p>The following basic work-flows are supported:</p>
 	 * <ul><li>Logged Out > Login [ > Activation ] > Logged In</li>
-	 *     <li>Logged Out > Enrole > Activation > Logged In</li>
+	 *     <li>Logged Out > Register > Activation > Logged In</li>
 	 *     <li>Logged Out > Reset > Activation > Logged In</li>
 	 *     <li>Logged In > Impersonate > Logged In</li>
 	 *     <li>Logged In > Logout > Logged Out</li></ul>
@@ -164,15 +158,19 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		final ChallengeResponse cr = request.getChallengeResponse();
 		if (cr == null) return CONTINUE;
 
-		boolean remember = false;
-		try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Exception e) {}
 		final String value = format(cr);
 		if (value == null || value.equals(cr.getRawValue())) return CONTINUE;
 		
 		try {
 			final CookieSetting credentialsCookie = getCredentialsCookie(request, response);
 			credentialsCookie.setValue(new Crypto().encrypt(key, value));
-			credentialsCookie.setMaxAge(remember ? maxCookieAge : -1);
+			if (isAllowRemember()) {
+				boolean remember = false;
+				try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Exception e) {}
+				credentialsCookie.setMaxAge(remember ? Integer.MAX_VALUE : -1);
+			} else {
+				credentialsCookie.setMaxAge(maxCookieAge);
+			}
 			credentialsCookie.setSecure(secure);
 			credentialsCookie.setAccessRestricted(true);
 			return super.authenticated(request, response);
@@ -212,16 +210,18 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		try { expires = Long.parseLong(cr.getParameters().getFirstValue("expires")); } catch (Throwable e) {}
 		if (issued + 60000 < System.currentTimeMillis()) {
 			issued = System.currentTimeMillis();
-			expires = System.currentTimeMillis() + maxTokenAge;
+			expires = System.currentTimeMillis() + (maxExpiryAge * 1000);
 		}
-		boolean remember = false;
-		try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Throwable e) {}
 		
 		final Form p = new Form();
 		p.set("issued", Long.toString(issued));
 		p.set("expires", Long.toString(expires));
 		p.set("identifier", cr.getIdentifier());
-		p.set("remember", Boolean.toString(remember));
+		if (isAllowRemember()) {
+			boolean remember = false;
+			try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Throwable e) {}
+			p.set("remember", Boolean.toString(remember));
+		}
 		if (cr.getSecret() != null) p.set("secret", new String(cr.getSecret()));
 		final String authenticator = cr.getParameters().getFirstValue("authenticator");
 		if (authenticator != null) p.set("authenticator", authenticator);
@@ -239,23 +239,22 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		final Form form;
 		if (request.getMethod() == Method.DELETE) {
 			form = new Form();
-			form.set("action", ACTION_LOGOUT);
+			form.set("action", "logout");
 		} else if (request.getMethod() == Method.POST) {
 			form = new Form(request.getEntity());
-			if (form.getFirstValue("action") == null) form.set("action", ACTION_LOGIN);
+			if (form.getFirstValue("action") == null) form.set("action", "login");
 		} else {
 			return true;
 		}
+		
+		final Action action = Action.find(form.getFirstValue("action"));
 	
 		ChallengeResponse cr = null;
-		final String action = form.getFirstValue("action");
-		if (ACTION_LOGIN.equals(action)) {
-			// the user is attempting to log in
+		if (action == Action.LOGIN) {
 			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
 			cr.getParameters().add("impersonate", form.getFirstValue("impersonate"));
 			cr.getParameters().add("remember", form.getFirstValue("remember"));
-		} else if ("logout".equals(action)) {
-			// the user is attempting to log out
+		} else if (action == Action.LOGOUT) {
 			cr = parse(request.getCookies().getFirst(cookieName).getValue());
 			
 			final String authenticator = cr.getParameters().getFirstValue("authenticator");
@@ -270,24 +269,25 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 				cr.setIdentifier(authenticator);
 				cr.getParameters().remove("authenticator");
 			}
-		} else if (ACTION_RESET.equals(action)) {
+		} else if (action == Action.RESET) {
 			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
 			request.getAttributes().put("form", form);
-		} else if (ACTION_ENROLE.equals(action)) {
+		} else if (action == Action.REGISTER) {
 			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
 			cr.getParameters().add("email", form.getFirstValue("email"));
 			cr.getParameters().add("firstName", form.getFirstValue("firstName"));
 			cr.getParameters().add("lastName", form.getFirstValue("lastName"));
 			request.getAttributes().put("form", form);
-		} else if (ACTION_ACTIVATE.equals(action)) {
+		} else if (action == Action.ACTIVATE) {
 			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
 			cr.getParameters().add("activationKey", form.getFirstValue("identifier"));
-		} else if (ACTION_IMPERSONATE.equals(action)) {
+			cr.getParameters().add("remember", form.getFirstValue("remember"));
+		} else if (action == Action.IMPERSONATE) {
 			cr = parse(request.getCookies().getFirst(cookieName).getValue());
 			cr.getParameters().add("impersonate", form.getFirstValue("impersonate"));
 			request.setChallengeResponse(cr);
 		}
-		cr.getParameters().add("action", action);
+		cr.getParameters().add("action", form.getFirstValue("action"));
 		request.setChallengeResponse(cr);
 		return true;
 	}
@@ -313,28 +313,83 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	public int getMaxCookieAge() {
 		return maxCookieAge;
 	}
+	/**
+	 * Sets the maximum number of seconds that the browser should retain the cookie.
+	 * Use -1 to discard the cookie at the end of the session.
+	 * This option is only used when the allowRemember option is false.
+	 */
 	public void setMaxCookieAge(int maxCookieAge) {
 		this.maxCookieAge = maxCookieAge;
 	}
 	
-	public int getMaxTokenAge() {
-		return maxTokenAge;
+	public int getMaxExpiryAge() {
+		return maxExpiryAge;
 	}
-	public void setMaxTokenAge(int maxTokenAge) {
-		this.maxTokenAge = maxTokenAge;
+	/**
+	 * Sets the maximum number of seconds that the server should honor the cookie.
+	 * Use this option to simulate a session timeout.
+	 * Defaults to MAX_INT.
+	 */
+	public void setMaxExpiryAge(int maxExpiryAge) {
+		this.maxExpiryAge = maxExpiryAge;
 	}
 	
 	public int getDelay() {
 		return delay;
 	}
+	/**
+	 * Sets the number of milliseconds to delay after authentication failure.
+	 * Defaults to 1500.
+	 * Use this option to limit brute force attacks.
+	 */
 	public void setDelay(int delay) {
 		this.delay = delay;
 	}
 	
-	public void setSecure(boolean secure) {
-		this.secure = secure;
-	}
 	public boolean isSecure() {
 		return secure;
 	}
+	/**
+	 * Indicates if the cookie should only be transmitted from the browser to the server by secure means (https). 
+	 * Default is false.
+	 */
+	public void setSecure(boolean secure) {
+		this.secure = secure;
+	}
+	
+	public boolean isAllowRemember() {
+		return allowRemember;
+	}
+	/**
+	 * Indicates if the user has an option to remember the cookie for the maximum age.
+	 * If this option is true and the user opts to have their cookie remembered then the cookie age is set to MAX_INT, otherwise it is set to -1 (discard at end of session).
+	 * If this option is false the cookie age is set according to the maxCookieAge option.
+	 * Default is false.
+	 */
+	public void setAllowRemember(boolean allowRemember) {
+		this.allowRemember = allowRemember;
+	}
+	
+	public enum Action {
+		LOGIN, LOGOUT, IMPERSONATE, REGISTER, RESET, ACTIVATE;
+	
+		public static Action find(String name) {
+			if ("login".equalsIgnoreCase(name)) {
+				return LOGIN;
+			} else if ("logout".equalsIgnoreCase(name)) {
+				return LOGOUT;
+			} else if ("impersonate".equalsIgnoreCase(name)) {
+				return IMPERSONATE;
+			} else if ("enrole".equalsIgnoreCase(name) || "register".equalsIgnoreCase(name)) {
+				return REGISTER;
+			} else if ("reset".equalsIgnoreCase(name)) {
+				return RESET;
+			} else if ("activate".equals(name)) {
+				return ACTIVATE;
+			} else {
+				return LOGIN;
+			}
+		}
+	}
+
 }
