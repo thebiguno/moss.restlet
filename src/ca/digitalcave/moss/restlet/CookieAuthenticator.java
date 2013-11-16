@@ -1,6 +1,5 @@
 package ca.digitalcave.moss.restlet;
 
-import java.io.IOException;
 import java.security.Key;
 import java.util.Collections;
 import java.util.Map;
@@ -31,7 +30,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	private final String interceptPath;
 	private final Key key;
 	private volatile int delay = 1500;
-	private volatile int maxCookieAge = -1;
+	private volatile int maxCookieAge = Integer.MAX_VALUE;
 	private volatile int maxTokenAge = Integer.MAX_VALUE;
 	private volatile boolean secure = false;
 
@@ -58,6 +57,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	 * <p>Uses following additional parameters in the challenge response:</p>
 	 * <dl><dt>action</dt><dd>one of login, logout, impersonate, enrole, reset, activate</dd>
 	 *     <dt>expires</dt><dd>the date/time after which the token will no longer be honored</dd>
+	 *     <dt>remember</dt><dd>indicates that the user wishes to retain the cookie</dd>
 	 *     <dt>authenticator</dt><dd>the authentication identity whose password will be verified</dd>
 	 *     <dt>email</dt><dd>the email address of the user requesting a new account or requesting a password reset</dd>
 	 *     <dt>firstName</dt><dd>the first name of the user requesting a new account</dd>
@@ -163,14 +163,16 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	protected int authenticated(Request request, Response response) {
 		final ChallengeResponse cr = request.getChallengeResponse();
 		if (cr == null) return CONTINUE;
-		
+
+		boolean remember = false;
+		try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Exception e) {}
 		final String value = format(cr);
 		if (value == null || value.equals(cr.getRawValue())) return CONTINUE;
 		
 		try {
 			final CookieSetting credentialsCookie = getCredentialsCookie(request, response);
 			credentialsCookie.setValue(new Crypto().encrypt(key, value));
-			credentialsCookie.setMaxAge(maxCookieAge);
+			credentialsCookie.setMaxAge(remember ? maxCookieAge : -1);
 			credentialsCookie.setSecure(secure);
 			credentialsCookie.setAccessRestricted(true);
 			return super.authenticated(request, response);
@@ -212,11 +214,14 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			issued = System.currentTimeMillis();
 			expires = System.currentTimeMillis() + maxTokenAge;
 		}
+		boolean remember = false;
+		try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Throwable e) {}
 		
 		final Form p = new Form();
 		p.set("issued", Long.toString(issued));
 		p.set("expires", Long.toString(expires));
 		p.set("identifier", cr.getIdentifier());
+		p.set("remember", Boolean.toString(remember));
 		if (cr.getSecret() != null) p.set("secret", new String(cr.getSecret()));
 		final String authenticator = cr.getParameters().getFirstValue("authenticator");
 		if (authenticator != null) p.set("authenticator", authenticator);
@@ -248,6 +253,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			// the user is attempting to log in
 			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
 			cr.getParameters().add("impersonate", form.getFirstValue("impersonate"));
+			cr.getParameters().add("remember", form.getFirstValue("remember"));
 		} else if ("logout".equals(action)) {
 			// the user is attempting to log out
 			cr = parse(request.getCookies().getFirst(cookieName).getValue());

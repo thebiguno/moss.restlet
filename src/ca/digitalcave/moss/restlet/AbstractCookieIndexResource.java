@@ -43,7 +43,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 		final ChallengeResponse cr = getRequest().getChallengeResponse();
 		final String action = cr.getParameters().getFirstValue("action");
 		
-		//Delay a random amount of time, between 0 and 500 millis, so that user enumeration attacks relying on post
+		// Delay a random amount of time, between 0 and 500 millis, so that user enumeration attacks relying on post
 		// response time are more difficult
 		try { Thread.sleep((long) (Math.random() * 500));} catch (Throwable e){}
 		
@@ -57,7 +57,11 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 				result.put("msg", "Invalid Credentials");
 			}
 
-			// TODO forced password change would set an activation key onto the account and return that in the response
+			if (isPasswordExpired()) {
+				final String activationKey = UUID.randomUUID().toString();
+				updateActivationKey(user.getIdentifier(), activationKey);
+				result.put("activationKey", activationKey);
+			}
 		} else if (isAllowImpersonate() && "impersonate".equalsIgnoreCase(action)) {
 			if (cr.getParameters().getFirstValue("authenticator") == null) {
 				result.put("success", false);
@@ -75,7 +79,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 		} else if (isAllowReset() && "reset".equalsIgnoreCase(action)) {
 			final String activationKey = UUID.randomUUID().toString();
 			updateActivationKey(cr.getIdentifier(), activationKey);
-			//Send the email in a different thread so that the time taken to send the email does not help identify valid accounts
+			// Send the email in a different thread so that the time taken to send the email does not help identify valid accounts
 			if (getClientInfo().getUser() != null) {
 				final Runnable emailRunnable = new Runnable() { public void run() { sendActivationKey(getClientInfo().getUser().getEmail(), activationKey); } };
 				final Thread emailThread = new Thread(emailRunnable, "Email");
@@ -84,9 +88,11 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			}
 		} else if ("activate".equalsIgnoreCase(action)) {
 			final String password = new String(cr.getSecret());
-			// TODO policies could be enforced here such as strength, dictionary words or password history
-			final String hash = getHash(password);
-			updateSecret(cr.getIdentifier(), cr.getParameters().getFirstValue("activationKey"), hash);
+			if (isValidPassword(password)) {
+				// TODO policies could be enforced here such as strength, dictionary words or password history
+				final String hash = getHash(password);
+				updateSecret(cr.getIdentifier(), cr.getParameters().getFirstValue("activationKey"), hash);
+			}
 		} else {
 			result.put("success", false);
 			result.put("msg", "Unknown action " + action);
@@ -111,7 +117,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	
 	@Override
 	protected Representation delete(Variant variant) throws ResourceException {
-		//Delete should always work; the request is intercepted by the CookieAuthenticator, and the 
+		// Delete should always work; the request is intercepted by the CookieAuthenticator, and the 
 		// login token is deleted.
 		return new StringRepresentation("{success:true}");
 	}
@@ -160,6 +166,22 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	 */
 	protected Properties getConfig() {
 		return new Properties();
+	}
+	
+	/**
+	 * Override this method to force password reset; default is false.
+	 * @return
+	 */
+	protected boolean isPasswordExpired() {
+		return false;
+	}
+	
+	/**
+	 * Override this method to check password on activation; default is true.
+	 * @return
+	 */
+	protected boolean isValidPassword(String password) {
+		return true;
 	}
 	
 	/**
