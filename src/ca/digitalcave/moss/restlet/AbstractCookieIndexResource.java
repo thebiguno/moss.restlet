@@ -50,7 +50,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 		final HashMap<String, Object> result = new HashMap<String, Object>();
 		result.put("success", true);
 		
-		if ("login".equals(action)) {
+		if ("login".equalsIgnoreCase(action)) {
 			final User user = (User) getClientInfo().getUser();
 			if (user == null) {
 				result.put("success", false);
@@ -58,12 +58,12 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			}
 
 			// TODO forced password change would set an activation key onto the account and return that in the response
-		} else if (isAllowImpersonate() && "impersonate".equals(action)) {
+		} else if (isAllowImpersonate() && "impersonate".equalsIgnoreCase(action)) {
 			if (cr.getParameters().getFirstValue("authenticator") == null) {
 				result.put("success", false);
 				result.put("msg", "Not Permitted");
 			}
-		} else if (isAllowEnrole() && "enrole".equals(action)) {
+		} else if (isAllowEnrole() && ("register".equalsIgnoreCase(action) || "enrole".equalsIgnoreCase(action))) {
 			final User user = new User();
 			user.setIdentifier(cr.getIdentifier());
 			user.setEmail(cr.getParameters().getFirstValue("email"));
@@ -72,7 +72,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			final String activationKey = UUID.randomUUID().toString();
 			insertUser(user, activationKey);
 			sendActivationKey(user.getEmail(), activationKey);
-		} else if (isAllowReset() && "reset".equals(action)) {
+		} else if (isAllowReset() && "reset".equalsIgnoreCase(action)) {
 			final String activationKey = UUID.randomUUID().toString();
 			updateActivationKey(cr.getIdentifier(), activationKey);
 			//Send the email in a different thread so that the time taken to send the email does not help identify valid accounts
@@ -82,7 +82,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 				emailThread.setDaemon(false);
 				emailThread.start();
 			}
-		} else if ("activate".equals(action)) {
+		} else if ("activate".equalsIgnoreCase(action)) {
 			final String password = new String(cr.getSecret());
 			// TODO policies could be enforced here such as strength, dictionary words or password history
 			final String hash = getHash(password);
