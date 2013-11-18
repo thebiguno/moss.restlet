@@ -68,8 +68,9 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			user.setFirstName(cr.getParameters().getFirstValue("firstName"));
 			user.setLastName(cr.getParameters().getFirstValue("lastName"));
 			final String activationKey = UUID.randomUUID().toString();
-			if (insertUser(user, activationKey)) {
-				sendActivationKey(user.getEmail(), activationKey);
+			final String contactKey = insertUser(user, activationKey);
+			if (contactKey != null) {
+				sendActivationKey(contactKey, activationKey);
 			}
 			// success is always true to prevent user enumeration attacks
 		} else if (isAllowReset() && action == Action.RESET) {
@@ -100,9 +101,9 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	
 	/**
 	 * Implement this to persist the provided user and activation key.
-	 * @return true if the user was successfully added.
+	 * @return the user's contact key (e.g. email address) or null if the request failed.
 	 */
-	protected abstract boolean insertUser(User user, String activationKey);
+	protected abstract String insertUser(User user, String activationKey);
 	
 	/**
 	 * Implement this to set an activation key for the provided identifier.  The return value of this
@@ -113,7 +114,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	protected abstract String updateActivationKey(String identifier, String activationKey);
 	
 	/**
-	 * Implement this to set the hashed secret for the provided identifier.
+	 * Implement this to set the hashed secret for the provided activation key.
 	 */
 	protected abstract void updateSecret(String activationKey, String hash);
 	
