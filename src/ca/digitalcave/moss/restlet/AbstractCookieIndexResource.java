@@ -83,7 +83,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			final String password = new String(cr.getSecret());
 			success = isValidPassword(password);
 			if (success) {
-				updateSecret(cr.getIdentifier(), cr.getParameters().getFirstValue("activationKey"), getHash(password));
+				updateSecret(cr.getParameters().getFirstValue("activationKey"), getHash(password));
 				// success is always true to prevent user enumeration attacks
 			}
 		}
@@ -114,9 +114,8 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	
 	/**
 	 * Implement this to set the hashed secret for the provided identifier.
-	 * This method MUST verify that the activation key is valid for the given identifier to prevent a password reset attack.
 	 */
-	protected abstract void updateSecret(String identifier, String activationKey, String hash);
+	protected abstract void updateSecret(String activationKey, String hash);
 	
 	protected String getHash(String secret) {
 		return new MossHash().generate(secret);
