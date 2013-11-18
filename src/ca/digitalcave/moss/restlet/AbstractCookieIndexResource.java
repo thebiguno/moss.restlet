@@ -83,7 +83,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			final String password = new String(cr.getSecret());
 			success = isValidPassword(password);
 			if (success) {
-				updateSecret(cr.getIdentifier(), cr.getParameters().getFirstValue("activationKey"), password);
+				updateSecret(cr.getIdentifier(), cr.getParameters().getFirstValue("activationKey"), getHash(password));
 				// success is always true to prevent user enumeration attacks
 			}
 		}
