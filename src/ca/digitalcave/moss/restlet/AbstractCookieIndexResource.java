@@ -74,9 +74,9 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			// success is always true to prevent user enumeration attacks
 		} else if (isAllowReset() && action == Action.RESET) {
 			final String activationKey = UUID.randomUUID().toString();
-			updateActivationKey(cr.getIdentifier(), activationKey);
-			if (getClientInfo().getUser() != null) {
-				sendActivationKey(getClientInfo().getUser().getEmail(), activationKey);
+			final String contactKey = updateActivationKey(cr.getIdentifier(), activationKey);
+			if (contactKey != null) {
+				sendActivationKey(contactKey, activationKey);
 			}
 			// success is always true to prevent user enumeration attacks
 		} else if (action == Action.ACTIVATE) {
@@ -105,9 +105,12 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	protected abstract boolean insertUser(User user, String activationKey);
 	
 	/**
-	 * Implement this to set an activation key for the provided identifier.
+	 * Implement this to set an activation key for the provided identifier.  The return value of this
+	 * method MUST return the contact key for the required contact method.  For instance, email address,
+	 * SMS phone number, carrier pigeon routing information, etc.  Return null if the identifier is not valid
+	 * to cancel the sending of the activation key.
 	 */
-	protected abstract void updateActivationKey(String identifier, String activationKey);
+	protected abstract String updateActivationKey(String identifier, String activationKey);
 	
 	/**
 	 * Implement this to set the hashed secret for the provided identifier.
