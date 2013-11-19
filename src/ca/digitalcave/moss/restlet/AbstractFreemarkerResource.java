@@ -75,7 +75,7 @@ public abstract class AbstractFreemarkerResource extends ServerResource {
 	 * attributes under key "requestAttributes".  Override this method if you need more information in your data model.
 	 * @return
 	 */
-	protected HashMap<String, Object> getDataModel(){
+	protected Object getDataModel(){
 		final HashMap<String, Object> dataModel = new HashMap<String, Object>();
 		dataModel.put("user", getClientInfo().getUser());
 		dataModel.put("requestAttributes", getRequestAttributes());
