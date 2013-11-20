@@ -119,22 +119,29 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	
 	@Override
 	protected boolean authenticate(Request request, Response response) {
+		final boolean intercepting = isIntercepting(request, response);
+		final boolean result;
 		final boolean authenticated;
-		ChallengeResponse cr = null;
-		if (isIntercepting(request, response)) {
+		final ChallengeResponse cr;
+		if (intercepting) {
 			intercept(request, response);
-			super.authenticate(request, response);
-			authenticated = true;
+			cr = request.getChallengeResponse();
+			authenticated = super.authenticate(request, response);
+			result = true;	//You always want to return to the index, even if credentials are bad.
 		} else {
 			final Cookie cookie = request.getCookies().getFirst(cookieName);
 			if (cookie != null) {
 				cr = parse(cookie.getValue());
 				request.setChallengeResponse(cr);
 			}
+			else {
+				cr = null;
+			}
 			authenticated = super.authenticate(request, response);
+			result = authenticated;
 		}
 		
-		if (!isOptional() && !authenticated && delay > 0) {
+		if (!authenticated && (!isOptional() || intercepting) && delay > 0 && cr != null) {
 			// delay to reduce the effectiveness of brute force attacks
 			final String identifier = cr.getIdentifier();
 			
@@ -150,7 +157,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 				;
 			}
 		}
-		return authenticated;
+		return result;
 	}
 
 	@Override
