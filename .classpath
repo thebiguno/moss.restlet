@@ -7,5 +7,6 @@
 	<classpathentry kind="lib" path="lib/moss-crypto-1.0-5-g51a7ca4.jar"/>
 	<classpathentry kind="lib" path="lib/org.restlet.ext.freemarker-2.1.3.jar"/>
 	<classpathentry kind="lib" path="lib/org.freemarker-2.3.jar"/>
+	<classpathentry kind="lib" path="lib/dictionary-password-validator-1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
