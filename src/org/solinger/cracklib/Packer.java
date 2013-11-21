@@ -1,8 +1,6 @@
 package org.solinger.cracklib;
 
-
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
 
 public class Packer {
 
@@ -17,6 +15,7 @@ public class Packer {
 	protected RandomAccessFile dataFile; // data file
 	protected RandomAccessFile indexFile; // index file
 	protected RandomAccessFile hashFile; // hash file
+	protected String mode;
 
 	protected PackerHeader header;
 
@@ -27,33 +26,75 @@ public class Packer {
 
 	protected int block = -1;
 
-	public Packer(String path) throws IOException {
-		dataFile = new RandomAccessFile(path+".pwd","r"); // data file
-		indexFile = new RandomAccessFile(path+".pwi","r"); // index file
+	public Packer(String name, String mode) throws IOException {
+		this.mode = mode;
+		if (!(mode.equals("rw") || mode.equals("r"))) {
+			throw new IllegalArgumentException("Mode must be \"rw\" or \"r\"");
+		}
+
+		if (mode.equals("rw")) {
+			// we have to blow it away on write.
+			new File(name+".pwd").delete();
+			new File(name+".pwi").delete();
+			new File(name+".hwm").delete();
+		}
+
+		dataFile = new RandomAccessFile(name+".pwd",mode); // data file
+		indexFile = new RandomAccessFile(name+".pwi",mode); // index file
 		try {
-			hashFile = new RandomAccessFile(path+".hwm","r"); // hash file
+			hashFile = new RandomAccessFile(name+".hwm",mode); // hash file
 		} catch (IOException e) {
 			hashFile = null; // hashFile isn't mandatory.
 		}
 
-		header = PackerHeader.parse(indexFile);
-		if (header.getMagic() != MAGIC) {
-			throw new IOException("Magic Number mismatch");
-		} else if (header.getBlockLen() != NUMWORDS) {
-			throw new IOException("Size mismatch");
-		}
+		if (mode.equals("rw")) {
+			header = new PackerHeader();
+			header.setMagic(MAGIC);
+			header.setBlockLen((short) NUMWORDS);
+			header.setNumWords(0);
 
-		// populate the hwms..
-		if (hashFile != null) {
-			byte[] b = new byte[4];
-			for (int i=0;i<hwms.length;i++) {
-				hashFile.readFully(b);
-				hwms[i] = Util.getIntLE(b);
+			// write the header.
+			indexFile.write(header.getBytes());
+		} else {
+
+			header = PackerHeader.parse(indexFile);
+			if (header.getMagic() != MAGIC) {
+				throw new IOException("Magic Number mismatch");
+			} else if (header.getBlockLen() != NUMWORDS) {
+				throw new IOException("Size mismatch");
+			}
+
+			// populate the hwms..
+			if (hashFile != null) {
+				byte[] b = new byte[4];
+				for (int i=0;i<hwms.length;i++) {
+					hashFile.readFully(b);
+					hwms[i] = Util.getIntLE(b);
+				}
 			}
 		}
 	}
 
 	public synchronized void close() throws IOException {
+		if (mode.equals("rw")) {
+			flush();
+
+			indexFile.seek(0);
+			indexFile.write(header.getBytes());
+
+			if (hashFile != null) {
+				// Give non-existant letters decent indices.
+				for (int i=1; i<=0xff; i++) {
+					if (hwms[i] == 0) {
+						hwms[i] = hwms[i-1];
+					}
+				}
+				for (int i=0;i<hwms.length;i++) {
+					hashFile.write(Util.getBytesLE(hwms[i]));
+				}
+			}
+		}
+
 		indexFile.close();
 		dataFile.close();
 		if (hashFile != null) {
@@ -61,7 +102,75 @@ public class Packer {
 		}
 	}
 
+	public synchronized void put(String s) throws IOException {
+		if (!mode.equals("rw")) {
+			throw new IOException("Not opened for write.");
+		}
+
+		if (s == null) {
+			throw new NullPointerException();
+		}
+
+		if (lastWord != null && lastWord.compareTo(s) >= 0) {
+			throw new IllegalArgumentException
+			("put's must be in alphabetical order!");
+		} else {
+			lastWord = s;
+		}
+
+		// truncate if > MAXWORDLEN (including \0)
+		data[count] = s.length() > MAXWORDLEN-1 
+				? s.substring(0,MAXWORDLEN-1) : s;
+
+				hwms[s.charAt(0) & 0xff] = header.getNumWords();
+
+				++count;
+				header.setNumWords(header.getNumWords()+1);
+
+				if (count >= NUMWORDS) {
+					flush();
+				}
+	}
+
+	private synchronized void flush() throws IOException {
+		if (!mode.equals("rw")) {
+			throw new IOException("Not opened for write.");
+		}
+
+		int index = (int) dataFile.getFilePointer();
+
+		// write the pos to the index file.
+		indexFile.write(Util.getBytesLE(index));
+
+		dataFile.write(data[0].getBytes()); //write null terminated string.
+		dataFile.write((byte) 0);
+
+		String ostr = data[0];
+
+		for (int i = 1; i < NUMWORDS; i++) {
+			String nstr = data[i];
+
+			if (nstr != null) { //(nstr[0])
+				int j = 0;
+				for (j = 0; j < ostr.length() && j < nstr.length()
+						&& (ostr.charAt(j) == nstr.charAt(j)); j++) {}
+				dataFile.write(j & 0xff); // write the index
+				dataFile.write(nstr.substring(j).getBytes()); // write the new string from j to end.
+			}
+			dataFile.write((byte) 0); //write a null;
+
+			ostr = nstr;
+		}
+
+		data = new String[NUMWORDS];
+		count = 0;
+	}
+
 	public synchronized String get(int num) throws IOException {
+		if (!mode.equals("r")) {
+			throw new IOException("Can only get in mode \"r\"");
+		}
+
 		if (header.getNumWords() <= num) { // too big
 			return null;
 		}
@@ -124,6 +233,10 @@ public class Packer {
 	}
 
 	public int find(String s) throws IOException {
+		if (!mode.equals("r")) {
+			throw new IOException("Can only find in mode \"r\"");
+		}
+
 		int index = (int) s.charAt(0);
 		int lwm = index != 0 ? hwms[index - 1] : 0;
 		int hwm = hwms[index];
@@ -151,5 +264,52 @@ public class Packer {
 
 	public int size() {
 		return header.getNumWords();
+	}
+
+	public static final void usage() {
+		System.err.println("Packer -dump <dict> | -make <dict> <wordlist>"
+				+ " | -find <dict> <word>");
+	}
+
+	public static final void main(String[] args) throws Exception {
+		if (args.length == 2 && args[0].equals("-dump")) {
+			Packer p = new Packer(args[1],"r");
+			try {
+				for (int i=0;i<p.size();i++) {
+					System.out.println(p.get(i));
+				}
+			} finally {
+				p.close();
+			}
+		} else if (args.length == 3 && args[0].equals("-make")) {
+			Packer p = new Packer(args[1],"rw");
+			try {
+				BufferedReader br = new BufferedReader(new InputStreamReader
+						(new FileInputStream(args[2])));
+				String s = null;
+				while ((s = br.readLine()) != null) {
+					System.out.println("Putting : "+s);
+					p.put(s);
+				}
+			} finally {
+				p.close();
+			}
+		} else if (args.length == 3 && args[0].equals("-find")) {
+			Packer p = new Packer(args[1],"r");
+			try {
+				int i = p.find(args[2]);
+				if (i != -1) {
+					System.out.println("Found "+p.get(i)+" at "+i);
+				} else {
+					System.out.println(args[2]+" not found.");
+				}
+			} finally {
+				p.close();
+			}
+		} else {
+			usage();
+			System.exit(1);
+		}
+		System.exit(0);
 	}
 }
