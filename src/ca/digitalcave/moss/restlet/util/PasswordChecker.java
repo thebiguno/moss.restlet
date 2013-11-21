@@ -2,16 +2,20 @@ package ca.digitalcave.moss.restlet.util;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
+
+import org.solinger.cracklib.CrackLib;
+import org.solinger.cracklib.Packer;
 
 import ca.digitalcave.moss.crypto.MossHash;
 
-import com.platinum.dpv.DictionaryPasswordValidator;
-
 public class PasswordChecker {
-
+	private Packer packer;
 	private boolean strengthEnforced = true;
 	private boolean lengthEnforced = true;
+	private boolean varianceEnforced = true;
 	private boolean multiClassEnforced = true;
 	private boolean dictionaryEnforced = true;
 	private boolean historyEnforced = true;
@@ -19,12 +23,20 @@ public class PasswordChecker {
 	private boolean customEnforced = false;
 	private int minimumStrength = 30;
 	private int minimumLength = 8;
+	private int minimumCharacters = 5;
 	private List<Pattern> patterns = Collections.emptyList();
-	
-	public boolean isValid(String identifier, String password) {
-		return testLength(password) && testStrength(password) && testMultiClass(password) && testDictionary(password) && testHistory(identifier, password) && testPatterns(password) && testCustom(identifier, password);
+
+	public boolean isValid(String identifier, String password) throws Exception {
+		return testLength(password) 
+				&& testStrength(password) 
+				&& testVariance(password) 
+				&& testMultiClass(password) 
+				&& testDictionary(password) 
+				&& testHistory(identifier, password) 
+				&& testPatterns(password) 
+				&& testCustom(identifier, password);
 	}
-	
+
 	/**
 	 * Returns a code with the given strength scale:
 	 * <ul>
@@ -48,7 +60,7 @@ public class PasswordChecker {
 
 		return (int) (Math.pow(password.length(), 3) * factor / 100f);
 	}
-	
+
 	public String getStrenthString(String password) {
 		int strength = getStrenthScore(password);
 		if (strength >= 80) return "Excellent";
@@ -57,7 +69,7 @@ public class PasswordChecker {
 		if (strength >= 20) return "Weak";
 		return "Very Poor";
 	}
-	
+
 	public boolean hasLower(String password) {
 		return password.matches(".*[a-z].*"); 
 	}
@@ -79,14 +91,14 @@ public class PasswordChecker {
 	public boolean hasSymbol(String password) {
 		return hasNumberSymbol(password) || hasOther(password);
 	}
-	
+
 	public boolean testMultiClass(String password) {
 		return multiClassEnforced && !isSingleClass(password) ? true : false;
 	}
 	public boolean isSingleClass(String password) {
 		return getClasses(password) < 2;
 	}
-	
+
 	public int getClasses(String password) {
 		int classes = 0;
 		if (hasLower(password)) classes++;
@@ -97,47 +109,65 @@ public class PasswordChecker {
 		if (hasOther(password)) classes++;
 		return classes; 
 	}
-	
+
 	public boolean testStrength(String password) {
 		return strengthEnforced && !isWeak(password) ? true : false;
 	}
 	public boolean isWeak(String password) {
 		return getStrenthScore(password) < getMinimumStrength();
 	}
-	
+
 	public boolean testLength(String password) {
 		return lengthEnforced && !isShort(password) ? true : false;
 	}
 	public boolean isShort(String password) {
 		return password.length() < getMinimumLength();
 	}
-	
+
+	public boolean testVariance(String password) {
+		return varianceEnforced && isUnvaried(password) ? true : false;
+	}
+	public boolean isUnvaried(String password) {
+		String chars = new String(password.substring(0,1));
+
+		for (int i = 1; i < password.length(); i++) { 
+			if (chars.indexOf(password.charAt(i)) == -1) {
+				chars = chars +password.charAt(i);
+			}
+		}
+		return chars.length() < minimumCharacters;
+	}
+
 	public boolean testDictionary(String password) {
 		return dictionaryEnforced && !isInDictionary(password) ? true : false;
 	}
 	public boolean isInDictionary(String password) {
+		if (packer == null) {
+			Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Dictionary is not initialized; call setPacker()");
+			return false;
+		}
 		try {
-			final DictionaryPasswordValidator validator = DictionaryPasswordValidator.getInstance();
-			return validator.isPasswordDictionaryBased(password);
-		} catch (Exception e) {
-			throw new RuntimeException();
+			return CrackLib.find(packer, password) != null;
+		} catch (Throwable e) {
+			Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Unable to check dictionary", e);
+			return false; // it's their lucky day
 		}
 	}
-	
+
 	/**
 	 * This method should be implemented in a subclass if history checking is required. 
 	 */
 	protected boolean verifyHash(String hash, String password) {
 		return MossHash.verify(hash, password);
 	}
-	
+
 	/**
 	 * This method should be implemented in a subclass if history checking is required. 
 	 */
 	protected List<String> getHistory(String identifier) {
 		return Collections.emptyList();
 	}
-	
+
 	public boolean testHistory(String identifier, String password) {
 		return historyEnforced && !isInHistory(identifier, password) ? true : false; 
 	}
@@ -147,7 +177,7 @@ public class PasswordChecker {
 		}
 		return false;
 	}
-	
+
 	public boolean testPatterns(String password) {
 		return patternsEnforced && !isRestricted(password) ? true : false;
 	}
@@ -159,18 +189,18 @@ public class PasswordChecker {
 		}
 		return false;
 	}
-	
+
 	public boolean testCustom(String identifier, String password) {
 		return customEnforced && !isCustom(identifier, password) ? true : false;
 	}
-	
+
 	/**
 	 * This method should be implemented in a subclass if other custom checks are required. 
 	 */
 	public boolean isCustom(String identifier, String password) {
 		return false;
 	}
-	
+
 	public List<Pattern> getRestrictedPatterns() {
 		return patterns;
 	}
@@ -178,7 +208,7 @@ public class PasswordChecker {
 		this.patterns = patterns;
 		return this;
 	}
-	
+
 	public int getMinimumLength() {
 		return minimumLength;
 	}
@@ -186,7 +216,7 @@ public class PasswordChecker {
 		this.minimumLength = minimumLength;
 		return this;
 	}
-	
+
 	public int getMinimumStrength() {
 		return minimumStrength;
 	}
@@ -194,7 +224,7 @@ public class PasswordChecker {
 		this.minimumStrength = minimumStrength;
 		return this;
 	}
-	
+
 	public boolean isDictionaryEnforced() {
 		return dictionaryEnforced;
 	}
@@ -202,7 +232,7 @@ public class PasswordChecker {
 		this.dictionaryEnforced = dictionaryEnforced;
 		return this;
 	}
-	
+
 	public boolean isHistoryEnforced() {
 		return historyEnforced;
 	}
@@ -210,7 +240,7 @@ public class PasswordChecker {
 		this.historyEnforced = historyEnforced;
 		return this;
 	}
-	
+
 	public boolean isLengthEnforced() {
 		return lengthEnforced;
 	}
@@ -219,6 +249,14 @@ public class PasswordChecker {
 		return this;
 	}
 	
+	public boolean isVarianceEnforced() {
+		return varianceEnforced;
+	}
+	public PasswordChecker setVarianceEnforced(boolean varianceEnforced) {
+		this.varianceEnforced = varianceEnforced;
+		return this;
+	}
+
 	public boolean isStrengthEnforced() {
 		return strengthEnforced;
 	}
@@ -226,7 +264,7 @@ public class PasswordChecker {
 		this.strengthEnforced = strengthEnforced;
 		return this;
 	}
-	
+
 	public boolean isMultiClassEnforced() {
 		return multiClassEnforced;
 	}
@@ -234,7 +272,7 @@ public class PasswordChecker {
 		this.multiClassEnforced = multiClassEnforced;
 		return this;
 	}
-	
+
 	public boolean isPatternsEnforced() {
 		return patternsEnforced;
 	}
@@ -242,7 +280,7 @@ public class PasswordChecker {
 		this.patternsEnforced = patternsEnforced;
 		return this;
 	}
-	
+
 	public boolean isCustomEnforced() {
 		return customEnforced;
 	}
@@ -251,4 +289,12 @@ public class PasswordChecker {
 		return this;
 	}
 	
+	public Packer getPacker() {
+		return packer;
+	}
+	public PasswordChecker setPacker(Packer packer) {
+		this.packer = packer;
+		return this;
+	}
+
 }

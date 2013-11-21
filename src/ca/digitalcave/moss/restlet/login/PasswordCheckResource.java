@@ -55,6 +55,14 @@ public class PasswordCheckResource extends ServerResource {
 					w.write(",");
 				}
 
+				if (checker.isVarianceEnforced()) {
+					final boolean passed = checker.testVariance(password);
+					result &= passed;
+					w.write("\"variance\":");
+					w.write(Boolean.toString(passed));
+					w.write(",");
+				}
+
 				if (checker.isDictionaryEnforced()) {
 					final boolean passed = checker.testDictionary(password);
 					result &= passed;
