@@ -61,7 +61,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			if (isAllowImpersonate() == false || cr.getParameters().getFirstValue("authenticator") == null) {
 				success = false;
 			}
-		} else if (isAllowEnrole() && action == Action.REGISTER) {
+		} else if (isAllowRegister() && action == Action.REGISTER) {
 			final User user = new User();
 			user.setIdentifier(cr.getIdentifier());
 			user.setEmail(cr.getParameters().getFirstValue("email"));
@@ -150,7 +150,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	 * Override this method to allow registration.
 	 * Default implementation returns false.
 	 */
-	protected boolean isAllowEnrole(){
+	protected boolean isAllowRegister(){
 		return false;
 	}
 	
