@@ -39,9 +39,9 @@ Ext.define("Login.controller.LoginController", {
 					if (key) {
 						var card = cmp.up('form').up('panel').getLayout().next();
 						card.down('hiddenfield[name=identifier]').setValue(key);
-						cmp.up('form').up('panel').down('animatedlabel[itemId=messageLogin2]').setTextAnimated("${translation(forcedPasswordChangeMessageKey!"FORCED_PASSWORD_CHANGE_MESSAGE")?json_string}", 5000);
+						cmp.up('form').up('panel').down('animatedlabel[itemId=messageLogin2]').setTextAnimated("${forcedPasswordChangeMessage!translation(forcedPasswordChangeMessageKey!"FORCED_PASSWORD_CHANGE_MESSAGE")?json_string}", 5000);
 					} else {
-						cmp.up('form').down('animatedlabel[itemId=messageLogin1]').setTextAnimated("${translation(forcedPasswordChangeMessageKey!"INVALID_CREDENTIALS_MESSAGE")?json_string}");
+						cmp.up('form').down('animatedlabel[itemId=messageLogin1]').setTextAnimated("${invalidCredentialsMessage!translation(invalidCredentialsMessageKey!"INVALID_CREDENTIALS_MESSAGE")?json_string}");
 					}
 				}
 			});
@@ -57,11 +57,11 @@ Ext.define("Login.controller.LoginController", {
 				"params": { "action": "register" },
 				"success": function() {
 					cmp.up('form').up('panel').getLayout().next();
-					cmp.up('form').up('panel').down('animatedlabel[itemId=messageRegister2]').setTextAnimated("${translation(forcedPasswordChangeMessageKey!"ACTIVATION_KEY_SENT")?json_string}", 5000);
+					cmp.up('form').up('panel').down('animatedlabel[itemId=messageRegister2]').setTextAnimated("${activationKeySentMessage!translation(activationKeySentMessageKey!"ACTIVATION_KEY_SENT")?json_string}", 5000);
 				},
 				"failure": function(form, action) {
 					var response = Ext.decode(action.response.responseText, true);
-					var message = response && response.msg ? response.msg : "${translation(forcedPasswordChangeMessageKey!"UNKNOWN_ERROR_MESSAGE")?json_string}";
+					var message = response && response.msg ? response.msg : "${unknownErrorMessage!translation(unknownErrorMessageKey!"UNKNOWN_ERROR_MESSAGE")?json_string}";
 					cmp.up('form').down('animatedlabel[itemId=messageRegister1]').setTextAnimated(message);
 				}
 			});
@@ -77,11 +77,11 @@ Ext.define("Login.controller.LoginController", {
 				"params": { "action": "reset" },
 				"success": function() {
 					cmp.up('form').up('panel').getLayout().next();
-					cmp.up('form').up('panel').down('animatedlabel[itemId=messageForgotPassword2]').setTextAnimated("${translation(forcedPasswordChangeMessageKey!"ACTIVATION_KEY_SENT")?json_string}", 5000);
+					cmp.up('form').up('panel').down('animatedlabel[itemId=messageForgotPassword2]').setTextAnimated("${activationKeySentMessage!translation(activationKeySentMessageKey!"ACTIVATION_KEY_SENT")?json_string}", 5000);
 				},
 				"failure": function(form, action) {
 					var response = Ext.decode(action.response.responseText, true);
-					var message = response && response.msg ? response.msg : "${translation(forcedPasswordChangeMessageKey!"UNKNOWN_ERROR_MESSAGE")?json_string}";
+					var message = response && response.msg ? response.msg : "${unknownErrorMessage!translation(unknownErrorMessageKey!"UNKNOWN_ERROR_MESSAGE")?json_string}";
 					cmp.up('form').down('animatedlabel[itemId=messageForgotPassword1]').setTextAnimated(message);
 				}
 			});
@@ -99,7 +99,7 @@ Ext.define("Login.controller.LoginController", {
 					window.location.reload();
 				},
 				"failure": function(form, action) {
-					cmp.up('form').down('animatedlabel[itemId=message]').setTextAnimated("${translation(forcedPasswordChangeMessageKey!"UNKNOWN_ERROR_MESSAGE")?json_string}");
+					cmp.up('form').down('animatedlabel[itemId=message]').setTextAnimated("${unknownErrorMessage!translation(unknownErrorMessageKey!"UNKNOWN_ERROR_MESSAGE")?json_string}");
 				}
 			});
 		}

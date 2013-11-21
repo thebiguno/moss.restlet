@@ -9,13 +9,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.ResourceBundle.Control;
 
-import org.restlet.Request;
-import org.restlet.data.Language;
 import org.restlet.data.MediaType;
-import org.restlet.data.Method;
-import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.ext.freemarker.TemplateRepresentation;
 import org.restlet.representation.OutputRepresentation;
@@ -37,16 +32,14 @@ public class LoginFreemarkerResource extends ServerResource {
 		getVariants().add(new Variant(MediaType.IMAGE_ALL));
 	}
 	
-	@SuppressWarnings("unchecked")
 	public Representation get(Variant variant) throws ResourceException {
 		final String path = "resource/" + (getReference().getRemainingPart().replaceAll("\\?.*$", "") + "." + getOriginalRef().getExtensions()).replaceAll("^/", "");
 		
 		if (variant.getMediaType().equals(MediaType.APPLICATION_JAVASCRIPT)){
-			final HashMap<String, String> configuration = (HashMap<String, String>) getRequest().getAttributes().get("configuration");
-			final HashMap<String, Object> dataModel = new HashMap<String, Object>();
-			dataModel.putAll(configuration);
+			final LoginRouter.Configuration configuration = (LoginRouter.Configuration) getRequest().getAttributes().get("configuration");
+			final LoginRouter.Configuration dataModel = configuration.clone();
 			ResourceBundle.clearCache();	//TODO Remove this
-			dataModel.put("translation", ResourceBundle.getBundle(configuration.get("i18nbase")));
+			dataModel.translation = ResourceBundle.getBundle(configuration.i18nBase);
 			final TemplateRepresentation entity = new TemplateRepresentation(path, getFreemarkerConfig(), dataModel, variant.getMediaType());
 			if (entity.getTemplate() == null) throw new ResourceException(Status.CLIENT_ERROR_NOT_FOUND);
 			entity.setModificationDate(new Date());
