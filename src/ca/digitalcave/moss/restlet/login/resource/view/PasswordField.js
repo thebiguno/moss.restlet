@@ -29,16 +29,18 @@ Ext.define("Login.view.PasswordField", {
 						"flex": 1,
 						"validator": function(value){
 							this.ownerCt.getComponent(1).validate();	//Validate that passwords match
-							if (this.lastCheck == null) return "${passwordUnvalidated!translation("PASSWORD_UNVALIDATED")?json_string}";	//TODO
+							if (this.lastCheck == null) return "${passwordUnvalidated!translation("PASSWORD_UNVALIDATED")?json_string}";
 							else if (this.lastCheck.passed) return true;
-							else if (!this.lastCheck.length) return "${passwordLength!translation("PASSWORD_LENGTH")?json_string}";
-							else if (!this.lastCheck.strength) return "${passwordStrength!translation("PASSWORD_STRENGTH")?json_string}";
-							else if (!this.lastCheck.variance) return "${passwordVariance!translation("PASSWORD_VARIANCE")?json_string}";
-							else if (!this.lastCheck.classes) return "${passwordClasses!translation("PASSWORD_CLASSES")?json_string}";
-							else if (!this.lastCheck.dictionary) return "${passwordDictionary!translation("PASSWORD_DICTIONARY")?json_string}";
-							else if (!this.lastCheck.pattern) return "${passwordPattern!translation("PASSWORD_PATTERN")?json_string}";
-							else if (!this.lastCheck.custom) return "${passwordCustom!translation("PASSWORD_CUSTOM")?json_string}";
-							else return "${translation("UNKNOWN_ERROR_MESSAGE")?json_string}"
+							
+							var result = "<b>Problems</b>:<br/>";
+							if (this.lastCheck.length === false) result += "${passwordLength!translation("PASSWORD_LENGTH")?json_string}<br/>";
+							if (this.lastCheck.strength === false) result += "${passwordStrength!translation("PASSWORD_STRENGTH")?json_string}<br/>";
+							if (this.lastCheck.variance === false) result += "${passwordVariance!translation("PASSWORD_VARIANCE")?json_string}<br/>";
+							if (this.lastCheck.classes === false) result += "${passwordClasses!translation("PASSWORD_CLASSES")?json_string}<br/>";
+							if (this.lastCheck.dictionary === false) result += "${passwordDictionary!translation("PASSWORD_DICTIONARY")?json_string}<br/>";
+							if (this.lastCheck.pattern === false) result += "${passwordPattern!translation("PASSWORD_PATTERN")?json_string}<br/>";
+							if (this.lastCheck.custom === false) result += "${passwordCustom!translation("PASSWORD_CUSTOM")?json_string}<br/>";
+							return result;
 						},
 						"connection": Ext.create('Ext.data.Connection', {
 							"autoAbort": true,
