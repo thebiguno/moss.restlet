@@ -18,11 +18,11 @@ public class PasswordChecker {
 	private boolean patternsEnforced = true;
 	private boolean customEnforced = false;
 	private int minimumStrength = 30;
-	private int minimumLength = 5;
+	private int minimumLength = 8;
 	private List<Pattern> patterns = Collections.emptyList();
 	
-	public boolean isValid(String password) {
-		return testLength(password) && testStrength(password) && testMultiClass(password) && testDictionary(password) && testHistory(password) && testPatterns(password) && testCustom(password);
+	public boolean isValid(String identifier, String password) {
+		return testLength(password) && testStrength(password) && testMultiClass(password) && testDictionary(password) && testHistory(identifier, password) && testPatterns(password) && testCustom(identifier, password);
 	}
 	
 	/**
@@ -81,7 +81,7 @@ public class PasswordChecker {
 	}
 	
 	public boolean testMultiClass(String password) {
-		return multiClassEnforced && !isSingleClass(password) ? false : true;
+		return multiClassEnforced && !isSingleClass(password) ? true : false;
 	}
 	public boolean isSingleClass(String password) {
 		return getClasses(password) < 2;
@@ -99,21 +99,21 @@ public class PasswordChecker {
 	}
 	
 	public boolean testStrength(String password) {
-		return strengthEnforced && !isWeak(password) ? false : true;
+		return strengthEnforced && !isWeak(password) ? true : false;
 	}
 	public boolean isWeak(String password) {
 		return getStrenthScore(password) < getMinimumStrength();
 	}
 	
 	public boolean testLength(String password) {
-		return lengthEnforced && !isShort(password) ? false : true;
+		return lengthEnforced && !isShort(password) ? true : false;
 	}
 	public boolean isShort(String password) {
 		return password.length() < getMinimumLength();
 	}
 	
 	public boolean testDictionary(String password) {
-		return dictionaryEnforced && !isInDictionary(password) ? false : true;
+		return dictionaryEnforced && !isInDictionary(password) ? true : false;
 	}
 	public boolean isInDictionary(String password) {
 		try {
@@ -127,26 +127,29 @@ public class PasswordChecker {
 	/**
 	 * This method should be implemented in a subclass if history checking is required. 
 	 */
-	protected String getHash(String password) {
-		return new MossHash().generate(password);
+	protected boolean verifyHash(String hash, String password) {
+		return MossHash.verify(hash, password);
 	}
 	
 	/**
 	 * This method should be implemented in a subclass if history checking is required. 
 	 */
-	protected List<String> getHistory() {
+	protected List<String> getHistory(String identifier) {
 		return Collections.emptyList();
 	}
 	
-	public boolean testHistory(String password) {
-		return historyEnforced && !isInHistory(password) ? false : true; 
+	public boolean testHistory(String identifier, String password) {
+		return historyEnforced && !isInHistory(identifier, password) ? true : false; 
 	}
-	public boolean isInHistory(String password) {
-		return getHistory().contains(getHash(password));
+	public boolean isInHistory(String identifier, String password) {
+		for(String hash : getHistory(identifier)){
+			if (verifyHash(hash, password)) return true;
+		}
+		return false;
 	}
 	
 	public boolean testPatterns(String password) {
-		return patternsEnforced && !isRestricted(password) ? false : true;
+		return patternsEnforced && !isRestricted(password) ? true : false;
 	}
 	public boolean isRestricted(String password) {
 		for (Pattern pattern : getRestrictedPatterns()) {
@@ -157,14 +160,14 @@ public class PasswordChecker {
 		return false;
 	}
 	
-	public boolean testCustom(String password) {
-		return customEnforced && !isCustom(password) ? false : true;
+	public boolean testCustom(String identifier, String password) {
+		return customEnforced && !isCustom(identifier, password) ? true : false;
 	}
 	
 	/**
 	 * This method should be implemented in a subclass if other custom checks are required. 
 	 */
-	public boolean isCustom(String password) {
+	public boolean isCustom(String identifier, String password) {
 		return false;
 	}
 	

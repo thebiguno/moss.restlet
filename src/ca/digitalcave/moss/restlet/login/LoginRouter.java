@@ -7,6 +7,7 @@ import org.restlet.Response;
 import org.restlet.Restlet;
 import org.restlet.routing.Router;
 
+
 public class LoginRouter extends Router {
 	private final HashMap<String, Object> configuration;
 	
@@ -23,7 +24,7 @@ public class LoginRouter extends Router {
 		//Override the defaults with the user-supplied data map
 		this.configuration.putAll(configuration);
 		
-//		this.attach("/checkpassword", passwordCheckClass);
+		this.attach("/checkpassword", PasswordCheckResource.class);
 		this.attachDefault(LoginFreemarkerResource.class);
 	}
 	
