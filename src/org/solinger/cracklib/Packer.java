@@ -27,11 +27,11 @@ public class Packer {
 
 	protected int block = -1;
 
-	public Packer(String name) throws IOException {
-		dataFile = new RandomAccessFile(name+".pwd","r"); // data file
-		indexFile = new RandomAccessFile(name+".pwi","r"); // index file
+	public Packer(String path) throws IOException {
+		dataFile = new RandomAccessFile(path+".pwd","r"); // data file
+		indexFile = new RandomAccessFile(path+".pwi","r"); // index file
 		try {
-			hashFile = new RandomAccessFile(name+".hwm","r"); // hash file
+			hashFile = new RandomAccessFile(path+".hwm","r"); // hash file
 		} catch (IOException e) {
 			hashFile = null; // hashFile isn't mandatory.
 		}

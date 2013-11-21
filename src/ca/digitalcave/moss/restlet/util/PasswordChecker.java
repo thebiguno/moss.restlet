@@ -1,5 +1,6 @@
 package ca.digitalcave.moss.restlet.util;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
@@ -16,21 +17,22 @@ public class PasswordChecker {
 	private boolean strengthEnforced = true;
 	private boolean lengthEnforced = true;
 	private boolean varianceEnforced = true;
-	private boolean multiClassEnforced = true;
+	private boolean multiclassEnforced = true;
 	private boolean dictionaryEnforced = true;
 	private boolean historyEnforced = true;
 	private boolean patternsEnforced = true;
 	private boolean customEnforced = false;
 	private int minimumStrength = 30;
 	private int minimumLength = 8;
-	private int minimumCharacters = 5;
+	private int minimumVariance = 5;
+	private int minimumClasses = 2;
 	private List<Pattern> patterns = Collections.emptyList();
 
 	public boolean isValid(String identifier, String password) throws Exception {
 		return testLength(password) 
 				&& testStrength(password) 
 				&& testVariance(password) 
-				&& testMultiClass(password) 
+				&& testMulticlass(password) 
 				&& testDictionary(password) 
 				&& testHistory(identifier, password) 
 				&& testPatterns(password) 
@@ -92,11 +94,11 @@ public class PasswordChecker {
 		return hasNumberSymbol(password) || hasOther(password);
 	}
 
-	public boolean testMultiClass(String password) {
-		return multiClassEnforced && !isSingleClass(password) ? true : false;
+	public boolean testMulticlass(String password) {
+		return multiclassEnforced && !isNotMulticlass(password) ? true : false;
 	}
-	public boolean isSingleClass(String password) {
-		return getClasses(password) < 2;
+	public boolean isNotMulticlass(String password) {
+		return getClasses(password) < minimumClasses;
 	}
 
 	public int getClasses(String password) {
@@ -135,15 +137,15 @@ public class PasswordChecker {
 				chars = chars +password.charAt(i);
 			}
 		}
-		return chars.length() < minimumCharacters;
+		return chars.length() < minimumVariance;
 	}
 
 	public boolean testDictionary(String password) {
 		return dictionaryEnforced && !isInDictionary(password) ? true : false;
 	}
-	public boolean isInDictionary(String password) {
+	public synchronized boolean isInDictionary(String password) {
 		if (packer == null) {
-			Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Dictionary is not initialized; call setPacker()");
+			Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Dictionary is not initialized");
 			return false;
 		}
 		try {
@@ -224,9 +226,25 @@ public class PasswordChecker {
 		this.minimumStrength = minimumStrength;
 		return this;
 	}
+	
+	public int getMinimumVariance() {
+		return minimumVariance;
+	}
+	public PasswordChecker setMinimumVariance(int minimumVariance) {
+		this.minimumVariance = minimumVariance;
+		return this;
+	}
+	
+	public int getMinimumClasses() {
+		return minimumClasses;
+	}
+	public PasswordChecker setMinimumClasses(int minimumClasses) {
+		this.minimumClasses = minimumClasses;
+		return this;
+	}
 
 	public boolean isDictionaryEnforced() {
-		return dictionaryEnforced;
+		return dictionaryEnforced && packer != null;
 	}
 	public PasswordChecker setDictionaryEnforced(boolean dictionaryEnforced) {
 		this.dictionaryEnforced = dictionaryEnforced;
@@ -266,10 +284,10 @@ public class PasswordChecker {
 	}
 
 	public boolean isMultiClassEnforced() {
-		return multiClassEnforced;
+		return multiclassEnforced;
 	}
 	public PasswordChecker setMultiClassEnforced(boolean multiClassEnforced) {
-		this.multiClassEnforced = multiClassEnforced;
+		this.multiclassEnforced = multiClassEnforced;
 		return this;
 	}
 
@@ -289,6 +307,19 @@ public class PasswordChecker {
 		return this;
 	}
 	
+	public synchronized PasswordChecker setPackerPath(String path) {
+		try {
+			if (packer != null) {
+				packer.close();
+			}
+			
+			packer = new Packer(path);
+		} catch (IOException e) {
+			Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Unable to initialize packer", e);
+		}
+		return this;
+	}
+	
 	public Packer getPacker() {
 		return packer;
 	}
@@ -296,5 +327,4 @@ public class PasswordChecker {
 		this.packer = packer;
 		return this;
 	}
-
 }
