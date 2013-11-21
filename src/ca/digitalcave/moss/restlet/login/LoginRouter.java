@@ -2,6 +2,7 @@ package ca.digitalcave.moss.restlet.login;
 
 import java.util.ResourceBundle;
 
+import org.restlet.Application;
 import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.Restlet;
@@ -14,15 +15,15 @@ public class LoginRouter extends Router {
 	private final Configuration configuration;
 	
 	public LoginRouter() {
-		this(new Configuration());
+		this(null, new Configuration());
 	}
 	
-	public LoginRouter(Configuration configuration) {
+	public LoginRouter(Application application, Configuration configuration) {
 		this.configuration = configuration;
 		
 		//Fill up the defaults
-		if (configuration.passwordChecker != null){
-			getApplication().getContext().getAttributes().put(PasswordChecker.class.getName(), configuration.passwordChecker);
+		if (configuration.passwordChecker != null && application != null){
+			application.getContext().getAttributes().put(PasswordChecker.class.getName(), configuration.passwordChecker);
 		}
 		
 		this.attach("/checkpassword", PasswordCheckResource.class);
