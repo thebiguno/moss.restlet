@@ -72,7 +72,7 @@ public class PasswordCheckResource extends ServerResource {
 				}
 
 				if (checker.isMultiClassEnforced()) {
-					final boolean passed = checker.testMultiClass(password);
+					final boolean passed = checker.testMulticlass(password);
 					result &= passed;
 					w.write("\"class\":");
 					w.write(Boolean.toString(passed));
