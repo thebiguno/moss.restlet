@@ -38,81 +38,72 @@ public class PasswordCheckResource extends ServerResource {
 				final int score = checker.getStrenthScore(password);
 				w.write("\"score\":");
 				w.write(Integer.toString(score));
-				w.write(",");
-				
-				if (checker.isStrengthEnforced()) {
-					final boolean passed = checker.testStrength(password);
-					result &= passed;
-					w.write("\"strength\":");
-					w.write(Boolean.toString(passed));
-					w.write("\"minStrength\":");
-					w.write(Integer.toString(checker.getMinimumStrength()));
-					w.write(",");
-				}
 				
 				if (checker.isLengthEnforced()) {
 					final boolean passed = checker.testLength(password);
 					result &= passed;
-					w.write("\"length\":");
+					w.write(",\"length\":");
 					w.write(Boolean.toString(passed));
-					w.write("\"minLength\":");
+					w.write(",\"minLength\":");
 					w.write(Integer.toString(checker.getMinimumLength()));
-					w.write(",");
 				}
 
+				if (checker.isStrengthEnforced()) {
+					final boolean passed = checker.testStrength(password);
+					result &= passed;
+					w.write(",\"strength\":");
+					w.write(Boolean.toString(passed));
+					w.write(",\"minStrength\":");
+					w.write(Integer.toString(checker.getMinimumStrength()));
+				}
+				
 				if (checker.isVarianceEnforced()) {
 					final boolean passed = checker.testVariance(password);
 					result &= passed;
-					w.write("\"variance\":");
+					w.write(",\"variance\":");
 					w.write(Boolean.toString(passed));
-					w.write("\"minVariance\":");
+					w.write(",\"minVariance\":");
 					w.write(Integer.toString(checker.getMinimumVariance()));
-					w.write(",");
 				}
 
 				if (checker.isMultiClassEnforced()) {
 					final boolean passed = checker.testMulticlass(password);
 					result &= passed;
-					w.write("\"classes\":");
+					w.write(",\"classes\":");
 					w.write(Boolean.toString(passed));
-					w.write("\"minClasses\":");
+					w.write(",\"minClasses\":");
 					w.write(Integer.toString(checker.getMinimumClasses()));
-					w.write(",");
 				}
 				
 				if (checker.isDictionaryEnforced()) {
 					final boolean passed = checker.testDictionary(password);
 					result &= passed;
-					w.write("\"dictionary\":");
+					w.write(",\"dictionary\":");
 					w.write(Boolean.toString(passed));
-					w.write(",");
 				}
 
 				if (checker.isPatternsEnforced()) {
 					final boolean passed = checker.testPatterns(password);
 					result &= passed;
-					w.write("\"pattern\":");
+					w.write(",\"pattern\":");
 					w.write(Boolean.toString(passed));
-					w.write(",");
 				}
 
 				if (checker.isHistoryEnforced()) {
 					final boolean passed = checker.testHistory(identifier, password);
 					result &= passed;
-					w.write("\"history\":");
+					w.write(",\"history\":");
 					w.write(Boolean.toString(passed));
-					w.write(",");
 				}
 
 				if (checker.isCustomEnforced()) {
 					final boolean passed = checker.testCustom(identifier, password);
 					result &= passed;
-					w.write("\"custom\":");
+					w.write(",\"custom\":");
 					w.write(Boolean.toString(passed));
-					w.write(",");
 				}
 
-				w.write("\"passed\":");
+				w.write(",\"passed\":");
 				w.write(Boolean.toString(result));
 				
 				w.write("}");

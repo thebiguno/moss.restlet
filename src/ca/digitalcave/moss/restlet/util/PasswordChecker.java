@@ -135,9 +135,10 @@ public class PasswordChecker {
 	}
 
 	public boolean testVariance(String password) {
-		return varianceEnforced && isUnvaried(password) ? true : false;
+		return varianceEnforced && !isUnvaried(password) ? true : false;
 	}
 	public boolean isUnvaried(String password) {
+		if (password == null || password.length() == 0) return true;
 		String chars = new String(password.substring(0,1));
 
 		for (int i = 1; i < password.length(); i++) { 
@@ -161,6 +162,7 @@ public class PasswordChecker {
 			}
 		}
 		try {
+			if (password.length() < 6) return false;	//Cracklib does not work on (some) 5 char or shorter words
 			return CrackLib.find(packer, password) != null;
 		} catch (Throwable e) {
 			Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Unable to check dictionary", e);
