@@ -45,6 +45,8 @@ public class PasswordCheckResource extends ServerResource {
 					result &= passed;
 					w.write("\"strength\":");
 					w.write(Boolean.toString(passed));
+					w.write("\"minStrength\":");
+					w.write(Integer.toString(checker.getMinimumStrength()));
 					w.write(",");
 				}
 				
@@ -53,6 +55,8 @@ public class PasswordCheckResource extends ServerResource {
 					result &= passed;
 					w.write("\"length\":");
 					w.write(Boolean.toString(passed));
+					w.write("\"minLength\":");
+					w.write(Integer.toString(checker.getMinimumLength()));
 					w.write(",");
 				}
 
@@ -61,21 +65,25 @@ public class PasswordCheckResource extends ServerResource {
 					result &= passed;
 					w.write("\"variance\":");
 					w.write(Boolean.toString(passed));
-					w.write(",");
-				}
-
-				if (checker.isDictionaryEnforced()) {
-					final boolean passed = checker.testDictionary(password);
-					result &= passed;
-					w.write("\"dictionary\":");
-					w.write(Boolean.toString(passed));
+					w.write("\"minVariance\":");
+					w.write(Integer.toString(checker.getMinimumVariance()));
 					w.write(",");
 				}
 
 				if (checker.isMultiClassEnforced()) {
 					final boolean passed = checker.testMulticlass(password);
 					result &= passed;
-					w.write("\"class\":");
+					w.write("\"classes\":");
+					w.write(Boolean.toString(passed));
+					w.write("\"minClasses\":");
+					w.write(Integer.toString(checker.getMinimumClasses()));
+					w.write(",");
+				}
+				
+				if (checker.isDictionaryEnforced()) {
+					final boolean passed = checker.testDictionary(password);
+					result &= passed;
+					w.write("\"dictionary\":");
 					w.write(Boolean.toString(passed));
 					w.write(",");
 				}
