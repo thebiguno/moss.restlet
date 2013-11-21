@@ -82,6 +82,7 @@ public class LoginRouter extends Router {
 		public String registerTitleKey;
 		public String resetTitle;
 		public String resetTitleKey;
+		public String routerAttachPoint;
 		public String unknownErrorMessage;
 		public String unknownErrorMessageKey;
 
@@ -131,6 +132,7 @@ public class LoginRouter extends Router {
 			result.registerTitleKey = this.registerTitleKey;
 			result.resetTitle = this.resetTitle;
 			result.resetTitleKey = this.resetTitleKey;
+			result.routerAttachPoint = this.routerAttachPoint;
 			
 			return result;
 		}
@@ -307,6 +309,10 @@ public class LoginRouter extends Router {
 			return resetTitleKey;
 		}
 
+		public String getRouterAttachPoint() {
+			return routerAttachPoint;
+		}
+		
 		public String getUnknownErrorMessage() {
 			return unknownErrorMessage;
 		}

@@ -1,6 +1,6 @@
 Ext.application({
 	"name": "Login",
-	"appFolder": "login",
+	"appFolder": "${routerAttachPoint}",
 	
 	"views": ["LoginPanel"],
 	"controllers": ["LoginController", "PasswordFieldController"],

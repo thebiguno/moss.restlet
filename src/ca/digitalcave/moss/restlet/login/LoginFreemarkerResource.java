@@ -35,8 +35,13 @@ public class LoginFreemarkerResource extends ServerResource {
 	public Representation get(Variant variant) throws ResourceException {
 		final String path = "resource/" + (getReference().getRemainingPart().replaceAll("\\?.*$", "") + "." + getOriginalRef().getExtensions()).replaceAll("^/", "");
 		
+		
 		if (variant.getMediaType().equals(MediaType.APPLICATION_JAVASCRIPT)){
 			final LoginRouter.Configuration configuration = (LoginRouter.Configuration) getRequest().getAttributes().get("configuration");
+			if (configuration.routerAttachPoint == null){
+				//Find the attachment point of the login router; e.g. "login".
+				configuration.routerAttachPoint = getReference().toString().replace(getRootRef().toString(), "").replace(getReference().getRemainingPart(), "").replaceFirst("^/", "");
+			}
 			final LoginRouter.Configuration dataModel = configuration.clone();
 			ResourceBundle.clearCache();	//TODO Remove this
 			dataModel.translation = ResourceBundle.getBundle(configuration.i18nBase);

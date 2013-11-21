@@ -14,7 +14,7 @@ Ext.define("Login.controller.PasswordFieldController", {
 	"checkPassword": function(field){
 		field.lastCheck = null;
 		field.connection.request({
-			"url": "login/checkpassword",
+			"url": "${routerAttachPoint}/checkpassword",
 			"params": {
 				"identifier": field.up("form").down("textfield[name=identifier]").getValue(),
 				"secret": field.getValue()
