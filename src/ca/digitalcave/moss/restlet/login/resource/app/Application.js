@@ -3,7 +3,7 @@ Ext.application({
 	"appFolder": "login",
 	
 	"views": ["LoginPanel"],
-	"controllers": ["LoginController"],
+	"controllers": ["LoginController", "PasswordFieldController"],
 
 	"launch": function() {
 		Ext.create("Login.view.LoginPanel");

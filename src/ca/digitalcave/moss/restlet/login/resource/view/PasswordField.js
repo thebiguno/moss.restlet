@@ -28,56 +28,23 @@ Ext.define("Login.view.PasswordField", {
 						"itemId": "password",
 						"options": this,
 						"flex": 1,
-						"minPasswordStrength": (this.minPasswordStrength ? this.minPasswordStrength : 20),
-						"passwordStrength": function(password){
-							var factor = 0;
-							
-							//Determine factor, based on character class
-							if (/.*[a-z].*/.test(password)) factor = factor + 2.6;
-							if (/.*[A-Z].*/.test(password)) factor = factor + 2.6;
-							if (/.*[0-9].*/.test(password)) factor = factor + 1.0;
-							if (/.*[ ].*/.test(password)) factor = factor + 0.1;
-							if (/.*[!@#$%^&*()].*/.test(password)) factor = factor + 1.0;
-							if (/.*[^a-zA-Z0-9!@#$%^&*() ].*/.test(password)) factor = factor + 2.2;
-							
-							return Math.pow(password.length, 3) * factor / 100;
-						},
 						"validator": function(value){
-							this.ownerCt.getComponent(1).validate();
-							if (value.length == 0 || this.passwordStrength(value) > this.initialConfig.minPasswordStrength) return true;
-							else return "Password too weak.";
+							this.ownerCt.getComponent(1).validate();	//Validate that passwords match
+							if (this.lastCheck == null) return "${passwordUnvalidated!translation("PASSWORD_UNVALIDATED")?json_string}";	//TODO
+							else if (this.lastCheck.passed) return true;
+							else if (!this.lastCheck.length) return "${passwordLength!translation("PASSWORD_LENGTH")?json_string}";
+							else if (!this.lastCheck.strength) return "${passwordStrength!translation("PASSWORD_STRENGTH")?json_string}";
+							else if (!this.lastCheck.variance) return "${passwordVariance!translation("PASSWORD_VARIANCE")?json_string}";
+							else if (!this.lastCheck.classes) return "${passwordClasses!translation("PASSWORD_CLASSES")?json_string}";
+							else if (!this.lastCheck.dictionary) return "${passwordDictionary!translation("PASSWORD_DICTIONARY")?json_string}";
+							else if (!this.lastCheck.pattern) return "${passwordPattern!translation("PASSWORD_PATTERN")?json_string}";
+							else if (!this.lastCheck.custom) return "${passwordCustom!translation("PASSWORD_CUSTOM")?json_string}";
+							else return "${translation("UNKNOWN_ERROR_MESSAGE")?json_string}"
 						},
-						"listeners": {
-							"keyup": function(field){
-								var color;
-								var value = field.getValue();
-								var strength = field.passwordStrength(value);
-	
-								if (value.length == 0 || strength < 10) color = "#953131";
-								else if (strength < 20) color = "#ab5e4a";
-								else if (strength < 30) color = "#b17253";
-								else if (strength < 40) color = "#b2894f";
-								else if (strength < 50) color = "#b18c51";
-								else if (strength < 60) color = "#bc9c45";
-								else if (strength < 70) color = "#b5b557";
-								else if (strength < 80) color = "#8cac4a";
-								else if (strength < 90) color = "#74b254";
-								else if (strength < 100) color = "#4aa94a";
-								else { color = "#26a826"; strength = 100; }
-								
-								var draw = field.up("passwordfield").down("draw[itemId=passwordbar]");
-								var surface = draw.surface;
-								var sprite = surface.items.get(0);
-								sprite.stopAnimation();
-								sprite.animate({
-									"to": {
-										"width": strength * draw.getWidth() / 100,
-										"fill": color
-									},
-									"duration": 500
-								});
-							}
-						}
+						"connection": Ext.create('Ext.data.Connection', {
+							"autoAbort": true,
+							"method": "POST"
+						})
 					},
 					{
 						"xtype": "textfield",
@@ -88,7 +55,7 @@ Ext.define("Login.view.PasswordField", {
 						"submitValue": false,
 						"validator": function(value){
 							if (this.ownerCt.getComponent(0).getValue() != value) {
-								return "Passwords must match";
+								return "${passwordConfirmationMatch!translation("PASSWORD_CONFIRMATION_MATCH")?json_string}";
 							} else {
 								return true;
 							}

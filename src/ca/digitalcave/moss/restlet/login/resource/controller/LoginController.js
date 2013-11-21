@@ -15,10 +15,10 @@ Ext.define("Login.controller.LoginController", {
 			},
 			"login button[itemId=authenticate]": { "click": this.authenticate },
 			"login form[itemId=authenticate] textfield": { "keypress": this.authenticate },
-			"login button[itemId=enrole]": { "click": this.enrole },
-			"login form[itemId=enrole] textfield": { "keypress": this.enrole },
+			"login button[itemId=register]": { "click": this.register },
+			"login form[itemId=register] textfield": { "keypress": this.register },
 			"login button[itemId=reset]": { "click": this.reset },
-			"login form[itemId=reset] textfield": { "keypress": this.enrole },
+			"login form[itemId=reset] textfield": { "keypress": this.reset },
 			"login button[itemId=activate]": { "click": this.activate },
 			"login form[itemId=activate] textfield": { "keypress": this.activate }
 		});
@@ -37,30 +37,32 @@ Ext.define("Login.controller.LoginController", {
 				"failure": function(form, action) {
 					var key = action.result ? action.result.key : undefined;
 					if (key) {
-						var card = button.up('form').up('panel').getLayout().next();
+						var card = cmp.up('form').up('panel').getLayout().next();
 						card.down('hiddenfield[name=identifier]').setValue(key);
+						cmp.up('form').up('panel').down('animatedlabel[itemId=messageLogin2]').setTextAnimated("${translation(forcedPasswordChangeMessageKey!"FORCED_PASSWORD_CHANGE_MESSAGE")?json_string}", 5000);
 					} else {
-						animateMessage(cmp.up('form').down('label[itemId=message]'), "Invalid Credentials");
+						cmp.up('form').down('animatedlabel[itemId=messageLogin1]').setTextAnimated("${translation(forcedPasswordChangeMessageKey!"INVALID_CREDENTIALS_MESSAGE")?json_string}");
 					}
 				}
 			});
 		}
 	},
 	
-	"enrole": function(cmp, e) {
+	"register": function(cmp, e) {
 		if (e.getKey() == 0 || e.getKey() == e.ENTER) {
 			var form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
 				"url": "index",
-				"params": { "action": "enrole" },
+				"params": { "action": "register" },
 				"success": function() {
 					cmp.up('form').up('panel').getLayout().next();
+					cmp.up('form').up('panel').down('animatedlabel[itemId=messageRegister2]').setTextAnimated("${translation(forcedPasswordChangeMessageKey!"ACTIVATION_KEY_SENT")?json_string}", 5000);
 				},
 				"failure": function(form, action) {
 					var response = Ext.decode(action.response.responseText, true);
-					var message = response && response.msg ? response.msg : "An error has occurred";
-					animateMessage(cmp.up('form').down('label[itemId=message]'), message);
+					var message = response && response.msg ? response.msg : "${translation(forcedPasswordChangeMessageKey!"UNKNOWN_ERROR_MESSAGE")?json_string}";
+					cmp.up('form').down('animatedlabel[itemId=messageRegister1]').setTextAnimated(message);
 				}
 			});
 		}
@@ -75,9 +77,12 @@ Ext.define("Login.controller.LoginController", {
 				"params": { "action": "reset" },
 				"success": function() {
 					cmp.up('form').up('panel').getLayout().next();
+					cmp.up('form').up('panel').down('animatedlabel[itemId=messageForgotPassword2]').setTextAnimated("${translation(forcedPasswordChangeMessageKey!"ACTIVATION_KEY_SENT")?json_string}", 5000);
 				},
 				"failure": function(form, action) {
-					animateMessage(cmp.up('form').down('label[itemId=message]'), "An error has occurred");
+					var response = Ext.decode(action.response.responseText, true);
+					var message = response && response.msg ? response.msg : "${translation(forcedPasswordChangeMessageKey!"UNKNOWN_ERROR_MESSAGE")?json_string}";
+					cmp.up('form').down('animatedlabel[itemId=messageForgotPassword1]').setTextAnimated(message);
 				}
 			});
 		}
@@ -94,7 +99,7 @@ Ext.define("Login.controller.LoginController", {
 					window.location.reload();
 				},
 				"failure": function(form, action) {
-					animateMessage(cmp.up('form').down('label[itemId=message]'), "An error has occurred");
+					cmp.up('form').down('animatedlabel[itemId=message]').setTextAnimated("${translation(forcedPasswordChangeMessageKey!"UNKNOWN_ERROR_MESSAGE")?json_string}");
 				}
 			});
 		}

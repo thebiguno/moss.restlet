@@ -2,6 +2,7 @@ Ext.define('Login.view.LoginPanel', {
 	"extend": "Ext.tab.Panel",
 	"alias": "widget.login",
 	"requires": [
+		"Login.view.AnimatedLabel",
 		"Login.view.PasswordField",
 		"Login.view.SelfDocumentingField"
 	],
@@ -10,6 +11,7 @@ Ext.define('Login.view.LoginPanel', {
 	"renderTo": "form",
 	"tabPosition": "bottom",
 	"items": [
+<#if showLogin!true>
 		{
 			"xtype": "panel",
 			"defaults": { "border": false, "margin": 10 },
@@ -24,7 +26,7 @@ Ext.define('Login.view.LoginPanel', {
 						{ "fieldLabel": "${translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier" },
 						{ "fieldLabel": "${translation(passwordLabelKey!"PASSWORD_LABEL")?json_string}", "inputType": "password", "name": "secret" },
 						${(extraLoginStep1Fields!)?json_string}
-						{ "xtype": "label", "itemId": "message", "text": "\xA0" }
+						{ "xtype": "animatedlabel", "itemId": "messageLogin1" }
 					],
 					"buttons": [
 						{ "text": "${translation(loginLabelKey!"LOGIN_LABEL")?json_string}", "itemId": "authenticate" }
@@ -35,40 +37,40 @@ Ext.define('Login.view.LoginPanel', {
 					"itemId": "activate",
 					"defaults": { "anchor": "100%", "allowBlank": false, "xtype": "textfield", "enableKeyEvents": true },
 					"items": [
-						{ "xtype": "label", "text": "${translation(forcedPasswordChangeMessageKey!"FORCED_PASSWORD_CHANGE_MESSAGE")?json_string}" },
-						{ "name": "identifier", "itemId": "identifier", "type": "hidden" },
-						{ "fieldLabel": "${translation(activationKeyLabelKey!"ACTIVATION_KEY_LABEL")?json_string}", "name": "identifier" },
+						{ "name": "identifier", "xtype": "hidden" },
 						{ "fieldLabel": "${translation(newPasswordLabelKey!"NEW_PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
 						${(extraLoginStep2PanelFields!)?json_string}
-						{ "xtype": "label", "itemId": "message", "text": "\xA0" }
+						{ "xtype": "animatedlabel", "itemId": "messageLogin2" }
 					],
 					"buttons": [
 						{ "text": "${translation(backButtonKey!"BACK_BUTTON")?json_string}", "itemId": "back" },
-						{ "text": "${translation(createAccountButtonKey!"CREATE_ACCOUNT_BUTTON")?json_string}", "itemId": "activate" }
+						{ "text": "${translation(createAccountButtonKey!"CHANGE_PASSWORD_BUTTON")?json_string}", "itemId": "activate" }
 					]
 				}
 			]
 		},
+</#if>
+<#if showRegister!false>
 		{
 			"xtype": "panel",
 			"defaults": { "border": false, "margin": 10 },
-			"title": "${translation(enroleTitleKey!"ENROLE_TITLE")?json_string}",
+			"title": "${translation(registerTitleKey!"REGISTER_TITLE")?json_string}",
 			"layout": "card",
 			"items": [
 				{
 					"xtype": "form",
-					"itemId": "enrole",
+					"itemId": "register",
 					"defaults": { "anchor": "100%", "allowBlank": false, "xtype": "textfield", "enableKeyEvents": true },
 					"items": [
 						{ "fieldLabel": "${translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier", "vtype": "email" },
-						${(extraEnroleStep1Fields!)?json_string}
-						{ "xtype": "label", "itemId": "message", "text": "\xA0" }
+						${(extraRegisterStep1Fields!)?json_string}
+						{ "xtype": "animatedlabel", "itemId": "messageRegister1" }
 						
 					],
 					"buttons": [
 						{ "text": "${translation(existingKeyButtonKey!"EXISTING_KEY_BUTTON")?json_string}", "itemId": "forward" },
 						"->",
-						{ "text": "${translation(generateKeyButtonKey!"GENERATE_KEY_BUTTON")?json_string}", "itemId": "enrole" }
+						{ "text": "${translation(generateKeyButtonKey!"GENERATE_KEY_BUTTON")?json_string}", "itemId": "register" }
 					]
 				},
 				{
@@ -78,8 +80,8 @@ Ext.define('Login.view.LoginPanel', {
 					"items": [
 						{ "fieldLabel": "${translation(activationKeyLabelKey!"ACTIVATION_KEY_LABEL")?json_string}", "name": "identifier" },
 						{ "fieldLabel": "${translation(newPasswordLabelKey!"NEW_PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
-						${(extraEnroleStep2PanelFields!)?json_string}
-						{ "xtype": "label", "itemId": "message", "text": "\xA0" }
+						${(extraRegisterStep2PanelFields!)?json_string}
+						{ "xtype": "animatedlabel", "itemId": "messageRegister2" }
 					],
 					"buttons": [
 						{ "text": "${translation(backButtonKey!"BACK_BUTTON")?json_string}", "itemId": "back" },
@@ -88,6 +90,8 @@ Ext.define('Login.view.LoginPanel', {
 				}
 			]
 		},
+</#if>
+<#if showForgotPassword!true>
 		{
 			"xtype": "panel",
 			"defaults": { "border": false, "margin": 10 },
@@ -96,12 +100,12 @@ Ext.define('Login.view.LoginPanel', {
 			"items": [
 				{
 					"xtype": "form",
-					"itemId": "enrole",
+					"itemId": "register",
 					"defaults": { "anchor": "100%", "allowBlank": false, "xtype": "textfield", "enableKeyEvents": true },
 					"items": [
 						{ "fieldLabel": "${translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier" },
 						${(extraResetStep1PanelFields!)?json_string}
-						{ "xtype": "label", "itemId": "message", "text": "\xA0" }
+						{ "xtype": "animatedlabel", "itemId": "messageForgotPassword1" }
 					],
 					"buttons": [
 						{ "text": "${translation(existingKeyButtonKey!"EXISTING_KEY_BUTTON")?json_string}", "itemId": "forward" },
@@ -117,7 +121,7 @@ Ext.define('Login.view.LoginPanel', {
 						{ "fieldLabel": "${translation(activationKeyLabelKey!"ACTIVATION_KEY_LABEL")?json_string}", "name": "identifier" },
 						{ "fieldLabel": "${translation(newPasswordLabelKey!"NEW_PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
 						${(extraResetStep2PanelFields!)?json_string}
-						{ "xtype": "label", "itemId": "message", "text": "\xA0" }
+						{ "xtype": "animatedlabel", "itemId": "messageForgotPassword2" }
 					],
 					"buttons": [
 						{ "text": "${translation(backButtonKey!"BACK_BUTTON")?json_string}", "itemId": "back" },
@@ -126,5 +130,6 @@ Ext.define('Login.view.LoginPanel', {
 				}
 			]
 		}
+</#if>
 	]
 });
