@@ -71,6 +71,7 @@ public class LoginRouter extends Router {
 		public String i18nBase = "ca.digitalcave.moss.restlet.login.i18n.i18n";
 		public String identifierLabel;
 		public String identifierLabelKey;
+		public String loginFormId;
 		public String loginLabel;
 		public String loginLabelKey;
 		public String loginTitleKey;
@@ -121,6 +122,7 @@ public class LoginRouter extends Router {
 			result.i18nBase = this.i18nBase;
 			result.identifierLabel = this.identifierLabel;
 			result.identifierLabelKey = this.identifierLabelKey;
+			result.loginFormId = this.loginFormId;
 			result.loginLabel = this.loginLabel;
 			result.loginLabelKey = this.loginLabelKey;
 			result.loginTitleKey = this.loginTitleKey;
@@ -263,6 +265,10 @@ public class LoginRouter extends Router {
 
 		public String getIdentifierLabelKey() {
 			return identifierLabelKey;
+		}
+
+		public String getLoginFormId() {
+			return loginFormId;
 		}
 
 		public String getLoginLabel() {

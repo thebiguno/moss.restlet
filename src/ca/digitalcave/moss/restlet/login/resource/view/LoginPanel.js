@@ -8,7 +8,7 @@ Ext.define('Login.view.LoginPanel', {
 	],
 
 	"title": "${formTitle!translation(formTitleKey!"FORM_TITLE")?json_string}",
-	"renderTo": "form",
+	"renderTo": "${loginFormId!"loginform"}",
 	"tabPosition": "bottom",
 	"items": [
 <#if showLogin!true>
