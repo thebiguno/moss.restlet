@@ -1,6 +1,11 @@
 package ca.digitalcave.moss.restlet.util;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
@@ -13,6 +18,7 @@ import org.solinger.cracklib.Packer;
 import ca.digitalcave.moss.crypto.MossHash;
 
 public class PasswordChecker {
+	private String wordlistPath;
 	private Packer packer;
 	private boolean strengthEnforced = true;
 	private boolean lengthEnforced = true;
@@ -145,8 +151,12 @@ public class PasswordChecker {
 	}
 	public synchronized boolean isInDictionary(String password) {
 		if (packer == null) {
-			Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Dictionary is not initialized");
-			return false;
+			try {
+				initDictionary();
+			} catch (IOException e) {
+				Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Unable to initialize dictionary", e);
+				return false; // it's their lucky day
+			}
 		}
 		try {
 			return CrackLib.find(packer, password) != null;
@@ -244,7 +254,7 @@ public class PasswordChecker {
 	}
 
 	public boolean isDictionaryEnforced() {
-		return dictionaryEnforced && packer != null;
+		return dictionaryEnforced;
 	}
 	public PasswordChecker setDictionaryEnforced(boolean dictionaryEnforced) {
 		this.dictionaryEnforced = dictionaryEnforced;
@@ -307,24 +317,47 @@ public class PasswordChecker {
 		return this;
 	}
 	
-	public synchronized PasswordChecker setPackerPath(String path) {
-		try {
-			if (packer != null) {
-				packer.close();
-			}
-			
-			packer = new Packer(path);
-		} catch (IOException e) {
-			Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Unable to initialize packer", e);
-		}
+	public PasswordChecker setWordlistPath(String wordlistPath) {
+		this.wordlistPath = wordlistPath;
 		return this;
+	}
+	public String getWordlistPath() {
+		return wordlistPath;
 	}
 	
-	public Packer getPacker() {
-		return packer;
+	protected void initDictionary() throws IOException {
+		if (this.wordlistPath == null || this.wordlistPath.trim().length() == 0) {
+			initDefaultDictionary();
+		} else {
+			initDictionary(this.wordlistPath);
+		}
 	}
-	public PasswordChecker setPacker(Packer packer) {
-		this.packer = packer;
-		return this;
+	protected void initDictionary(String path) throws IOException {
+		initDictionary(new FileReader(path));
+	}
+	protected void initDefaultDictionary() throws IOException {
+		initDictionary(new InputStreamReader(getClass().getResourceAsStream("words.txt")));
+	}
+	protected synchronized void initDictionary(Reader reader) throws IOException {
+		if (this.packer != null) {
+			this.packer.close();
+			this.packer = null;
+		}
+		
+		final File file = new File(System.getProperty("java.io.tmpdir", "words"));
+		final Packer p = new Packer(file.getAbsolutePath(),"rw");
+		try {
+			final BufferedReader br = new BufferedReader(reader);
+			String s = null;
+			while ((s = br.readLine()) != null) {
+				System.out.println("Putting : "+s);
+				p.put(s);
+			}
+		} finally {
+			reader.close();
+			p.close();
+		}
+		
+		this.packer = new Packer(file.getAbsolutePath(), "r");
 	}
 }

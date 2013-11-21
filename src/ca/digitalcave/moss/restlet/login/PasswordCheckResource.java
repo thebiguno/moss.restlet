@@ -2,7 +2,6 @@ package ca.digitalcave.moss.restlet.login;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.HashMap;
 
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
@@ -17,9 +16,11 @@ public class PasswordCheckResource extends ServerResource {
 
 	@Override
 	protected Representation post(Representation entity) throws ResourceException {
-		@SuppressWarnings("unchecked")
-		PasswordChecker c = (PasswordChecker) ((HashMap<String, Object>) getRequest().getAttributes().get("configuration")).get(PasswordChecker.class.getName());
-		if (c == null) c = new PasswordChecker();
+		PasswordChecker c = (PasswordChecker) getApplication().getContext().getAttributes().get(PasswordChecker.class.getName());
+		if (c == null) {
+			c = new PasswordChecker();
+			getApplication().getContext().getAttributes().put(PasswordChecker.class.getName(), c);
+		}
 		
 		final PasswordChecker checker = c;
 		
