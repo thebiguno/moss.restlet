@@ -24,7 +24,6 @@ Ext.define("Login.view.PasswordField", {
 						"xtype": "textfield",
 						"inputType": "password",
 						"name": this.name,
-						"enableKeyEvents": true,
 						"itemId": "password",
 						"options": this,
 						"flex": 1,

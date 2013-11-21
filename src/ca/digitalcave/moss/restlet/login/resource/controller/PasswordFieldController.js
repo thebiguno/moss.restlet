@@ -4,9 +4,8 @@ Ext.define("Login.controller.PasswordFieldController", {
 	"init": function() {
 		this.control({
 			"passwordfield textfield[itemId=password]": {
-				//"keypress": this.checkPassword,
-				//"blur": this.checkPassword,
-				//"focus": this.checkPassword,
+				"blur": this.checkPassword,
+				"focus": this.checkPassword,
 				"change": this.checkPassword
 			}
 		});
