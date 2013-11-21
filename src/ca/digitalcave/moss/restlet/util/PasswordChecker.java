@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,6 +19,8 @@ import org.solinger.cracklib.Packer;
 import ca.digitalcave.moss.crypto.MossHash;
 
 public class PasswordChecker {
+	private String patternlistPath;
+	private List<Pattern> patterns;
 	private String wordlistPath;
 	private Packer packer;
 	private boolean strengthEnforced = true;
@@ -25,14 +28,13 @@ public class PasswordChecker {
 	private boolean varianceEnforced = true;
 	private boolean multiclassEnforced = true;
 	private boolean dictionaryEnforced = true;
-	private boolean historyEnforced = true;
-	private boolean patternsEnforced = true;
+	private boolean historyEnforced = false;
+	private boolean patternsEnforced = false;
 	private boolean customEnforced = false;
 	private int minimumStrength = 30;
 	private int minimumLength = 8;
 	private int minimumVariance = 5;
 	private int minimumClasses = 2;
-	private List<Pattern> patterns = Collections.emptyList();
 
 	public boolean isValid(String identifier, String password) throws Exception {
 		return testLength(password) 
@@ -191,6 +193,15 @@ public class PasswordChecker {
 	}
 
 	public boolean testPatterns(String password) {
+		if (patterns == null) {
+			try {
+				initPatterns();
+			} catch (IOException e) {
+				Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Unable to initialize patterns", e);
+				return false; // it's their lucky day
+			}
+		}
+			
 		return patternsEnforced && !isRestricted(password) ? true : false;
 	}
 	public boolean isRestricted(String password) {
@@ -332,11 +343,11 @@ public class PasswordChecker {
 			initDictionary(this.wordlistPath);
 		}
 	}
-	protected void initDictionary(String path) throws IOException {
-		initDictionary(new FileReader(path));
-	}
 	protected void initDefaultDictionary() throws IOException {
 		initDictionary(new InputStreamReader(getClass().getResourceAsStream("words.txt")));
+	}
+	protected void initDictionary(String path) throws IOException {
+		initDictionary(new FileReader(path));
 	}
 	protected synchronized void initDictionary(Reader reader) throws IOException {
 		if (this.packer != null) {
@@ -350,7 +361,6 @@ public class PasswordChecker {
 			final BufferedReader br = new BufferedReader(reader);
 			String s = null;
 			while ((s = br.readLine()) != null) {
-				System.out.println("Putting : "+s);
 				p.put(s);
 			}
 		} finally {
@@ -359,5 +369,39 @@ public class PasswordChecker {
 		}
 		
 		this.packer = new Packer(file.getAbsolutePath(), "r");
+	}
+	
+	protected void initPatterns() throws IOException {
+		if (this.wordlistPath == null || this.wordlistPath.trim().length() == 0) {
+			initDefaultPatterns();
+		} else {
+			initPatterns(this.patternlistPath);
+		}
+	}
+	protected void initDefaultPatterns() {
+		this.patterns = new LinkedList<Pattern>();
+	}
+	protected void initPatterns(String path) throws IOException {
+		initPatterns(new FileReader(path));
+	}
+	protected synchronized void initPatterns(Reader reader) throws IOException {
+		if (this.patterns != null) {
+			this.patterns.clear();
+		}
+		this.patterns = new LinkedList<Pattern>();
+		
+		try {
+			final BufferedReader br = new BufferedReader(reader);
+			String s = null;
+			while ((s = br.readLine()) != null) {
+				try {
+					patterns.add(Pattern.compile(s));
+				} catch (Throwable t) {
+					Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Ignoring bad pattern: " + s);
+				}
+			}
+		} finally {
+			reader.close();
+		}
 	}
 }
