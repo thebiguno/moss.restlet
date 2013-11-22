@@ -45,6 +45,7 @@ public class LoginFreemarkerResource extends ServerResource {
 			final LoginRouter.Configuration dataModel = configuration.clone();
 			ResourceBundle.clearCache();	//TODO Remove this
 			dataModel.translation = ResourceBundle.getBundle(configuration.i18nBase);
+			if (configuration.i18nBaseCustom != null) dataModel.customTranslation = ResourceBundle.getBundle(configuration.i18nBaseCustom);
 			final TemplateRepresentation entity = new TemplateRepresentation(path, getFreemarkerConfig(), dataModel, variant.getMediaType());
 			if (entity.getTemplate() == null) throw new ResourceException(Status.CLIENT_ERROR_NOT_FOUND);
 			entity.setModificationDate(new Date());
