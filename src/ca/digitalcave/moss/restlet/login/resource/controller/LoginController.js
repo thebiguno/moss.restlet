@@ -49,7 +49,7 @@ Ext.define("Login.controller.LoginController", {
 	},
 	
 	"register": function(cmp, e) {
-		if (e.getKey() == 0 || e.getKey() == e.ENTER) {
+		if (!(e.getKey()) || e.getKey() == e.ENTER) {
 			var form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
@@ -69,7 +69,7 @@ Ext.define("Login.controller.LoginController", {
 	},
 	
 	"reset": function(cmp, e) {
-		if (e.getKey() == 0 || e.getKey() == e.ENTER) {
+		if (!(e.getKey()) || e.getKey() == e.ENTER) {
 			var form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
@@ -89,7 +89,7 @@ Ext.define("Login.controller.LoginController", {
 	},
 	
 	"activate": function(cmp, e) {
-		if (e.getKey() == 0 || e.getKey() == e.ENTER) {
+		if (!(e.getKey()) || e.getKey() == e.ENTER) {
 			var form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
