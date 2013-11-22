@@ -39,7 +39,7 @@ Ext.define("Login.controller.LoginController", {
 					if (key) {
 						var card = cmp.up('form').up('panel').getLayout().next();
 						card.down('hiddenfield[name=identifier]').setValue(key);
-						cmp.up('form').up('panel').down('animatedlabel[itemId=messageLogin2]').setTextAnimated("${forcedPasswordChangeMessage!translation(forcedPasswordChangeMessageKey!"FORCED_PASSWORD_CHANGE_MESSAGE")?json_string}", 5000);
+						cmp.up('form').up('panel').down('animatedlabel[itemId=messageLogin2]').setTextAnimated("${forcedPasswordChangeMessage!translation(forcedPasswordChangeMessageKey!"FORCED_PASSWORD_CHANGE_MESSAGE")?json_string}", 30000);
 					} else {
 						cmp.up('form').down('animatedlabel[itemId=messageLogin1]').setTextAnimated("${invalidCredentialsMessage!translation(invalidCredentialsMessageKey!"INVALID_CREDENTIALS_MESSAGE")?json_string}");
 					}
@@ -57,7 +57,7 @@ Ext.define("Login.controller.LoginController", {
 				"params": { "action": "register" },
 				"success": function() {
 					cmp.up('form').up('panel').getLayout().next();
-					cmp.up('form').up('panel').down('animatedlabel[itemId=messageRegister2]').setTextAnimated("${activationKeySentMessage!translation(activationKeySentMessageKey!"ACTIVATION_KEY_SENT")?json_string}", 5000);
+					cmp.up('form').up('panel').down('animatedlabel[itemId=messageRegister2]').setTextAnimated("${activationKeySentMessage!translation(activationKeySentMessageKey!"ACTIVATION_KEY_SENT")?json_string}", 30000);
 				},
 				"failure": function(form, action) {
 					var response = Ext.decode(action.response.responseText, true);
@@ -77,7 +77,7 @@ Ext.define("Login.controller.LoginController", {
 				"params": { "action": "reset" },
 				"success": function() {
 					cmp.up('form').up('panel').getLayout().next();
-					cmp.up('form').up('panel').down('animatedlabel[itemId=messageForgotPassword2]').setTextAnimated("${activationKeySentMessage!translation(activationKeySentMessageKey!"ACTIVATION_KEY_SENT")?json_string}", 5000);
+					cmp.up('form').up('panel').down('animatedlabel[itemId=messageForgotPassword2]').setTextAnimated("${activationKeySentMessage!translation(activationKeySentMessageKey!"ACTIVATION_KEY_SENT")?json_string}", 30000);
 				},
 				"failure": function(form, action) {
 					var response = Ext.decode(action.response.responseText, true);
