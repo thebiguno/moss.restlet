@@ -100,7 +100,7 @@ Ext.define('Login.view.LoginPanel', {
 			"items": [
 				{
 					"xtype": "form",
-					"itemId": "register",
+					"itemId": "reset",
 					"defaults": { "anchor": "100%", "allowBlank": false, "xtype": "textfield", "enableKeyEvents": true },
 					"items": [
 						{ "fieldLabel": "${identifierLabel!translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier" },
