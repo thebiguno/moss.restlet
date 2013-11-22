@@ -3,7 +3,7 @@ Ext.application({
 	"appFolder": "${routerAttachPoint}",
 	
 	"views": ["LoginPanel"],
-	"controllers": ["LoginController", "PasswordFieldController"],
+	"controllers": ["LoginController", "PasswordFieldController" ${applicationControllers}],
 
 	"launch": function() {
 		Ext.create("Login.view.LoginPanel");

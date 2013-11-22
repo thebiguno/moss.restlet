@@ -3,8 +3,8 @@ Ext.define('Login.view.LoginPanel', {
 	"alias": "widget.login",
 	"requires": [
 		"Login.view.AnimatedLabel",
-		"Login.view.PasswordField",
-		"Login.view.SelfDocumentingField"
+		"Login.view.PasswordField"
+		${applicationRequires!}
 	],
 
 	"title": "${formTitle!translation(formTitleKey!"FORM_TITLE")?json_string}",
@@ -37,7 +37,7 @@ Ext.define('Login.view.LoginPanel', {
 					"items": [
 						{ "fieldLabel": "${identifierLabel!translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier" },
 						{ "fieldLabel": "${passwordLabel!translation(passwordLabelKey!"PASSWORD_LABEL")?json_string}", "inputType": "password", "name": "secret" },
-						${(extraLoginStep1Fields!)?json_string}
+						<#if extraLoginStep1Fields??><@extraLoginStep1Fields/></#if>
 						{ "xtype": "animatedlabel", "itemId": "messageLogin1" }
 					],
 					"buttons": [
@@ -49,7 +49,7 @@ Ext.define('Login.view.LoginPanel', {
 					"items": [
 						{ "name": "identifier", "xtype": "hidden" },
 						{ "fieldLabel": "${newPasswordLabel!translation(newPasswordLabelKey!"NEW_PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
-						${(extraLoginStep2PanelFields!)?json_string}
+						<#if extraLoginStep2Fields??><@extraLoginStep2Fields/></#if>
 						{ "xtype": "animatedlabel", "itemId": "messageLogin2" }
 					],
 					"buttons": [
@@ -68,7 +68,7 @@ Ext.define('Login.view.LoginPanel', {
 					"itemId": "register",
 					"items": [
 						{ "fieldLabel": "${identifierLabel!translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier", "vtype": "email" },
-						${(extraRegisterStep1Fields!)?json_string}
+						<#if extraRegisterStep1Fields??><@extraRegisterStep1Fields/></#if>
 						{ "xtype": "animatedlabel", "itemId": "messageRegister1" }
 						
 					],
@@ -83,7 +83,7 @@ Ext.define('Login.view.LoginPanel', {
 					"items": [
 						{ "fieldLabel": "${activationKeyLabel!translation(activationKeyLabelKey!"ACTIVATION_KEY_LABEL")?json_string}", "name": "identifier" },
 						{ "fieldLabel": "${newPasswordLabel!translation(newPasswordLabelKey!"NEW_PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
-						${(extraRegisterStep2PanelFields!)?json_string}
+						<#if extraRegisterStep2Fields??><@extraRegisterStep2Fields/></#if>
 						{ "xtype": "animatedlabel", "itemId": "messageRegister2" }
 					],
 					"buttons": [
@@ -102,7 +102,7 @@ Ext.define('Login.view.LoginPanel', {
 					"itemId": "reset",
 					"items": [
 						{ "fieldLabel": "${identifierLabel!translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier" },
-						${(extraResetStep1PanelFields!)?json_string}
+						<#if extraResetStep1Fields??><@extraResetStep1Fields/></#if>
 						{ "xtype": "animatedlabel", "itemId": "messageForgotPassword1" }
 					],
 					"buttons": [
@@ -116,7 +116,7 @@ Ext.define('Login.view.LoginPanel', {
 					"items": [
 						{ "fieldLabel": "${activationKeyLabel!translation(activationKeyLabelKey!"ACTIVATION_KEY_LABEL")?json_string}", "name": "identifier" },
 						{ "fieldLabel": "${newPasswordLabel!translation(newPasswordLabelKey!"NEW_PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
-						${(extraResetStep2PanelFields!)?json_string}
+						<#if extraResetStep2Fields??><@extraResetStep2Fields/></#if>
 						{ "xtype": "animatedlabel", "itemId": "messageForgotPassword2" }
 					],
 					"buttons": [
