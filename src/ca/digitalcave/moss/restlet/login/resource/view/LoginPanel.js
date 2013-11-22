@@ -10,18 +10,30 @@ Ext.define('Login.view.LoginPanel', {
 	"title": "${formTitle!translation(formTitleKey!"FORM_TITLE")?json_string}",
 	"renderTo": "${loginFormId!"loginform"}",
 	"tabPosition": "bottom",
+	"height": "100%",
+	"defaults": {
+		"xtype": "panel",
+		"layout": "card", 
+		"defaults": {
+			"xtype": "form",
+			"border": false, 
+			"margin": 10, 
+			"autoScroll": true, 
+			"defaults": { 
+				"xtype": "textfield", 
+				"anchor": "100%", 
+				"allowBlank": false, 
+				"enableKeyEvents": true
+			}
+		}
+	},
 	"items": [
 <#if showLogin!true>
 		{
-			"xtype": "panel",
-			"defaults": { "border": false, "margin": 10 },
 			"title": "${translation(loginTitleKey!"LOGIN_TITLE")?json_string}",
-			"layout": "card",
 			"items": [
 				{
-					"xtype": "form",
 					"itemId": "authenticate",
-					"defaults": { "anchor": "100%", "allowBlank": false, "xtype": "textfield", "enableKeyEvents": true },
 					"items": [
 						{ "fieldLabel": "${identifierLabel!translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier" },
 						{ "fieldLabel": "${passwordLabel!translation(passwordLabelKey!"PASSWORD_LABEL")?json_string}", "inputType": "password", "name": "secret" },
@@ -33,9 +45,7 @@ Ext.define('Login.view.LoginPanel', {
 					]
 				},
 				{
-					"xtype": "form",
 					"itemId": "activate",
-					"defaults": { "anchor": "100%", "allowBlank": false, "xtype": "textfield", "enableKeyEvents": true },
 					"items": [
 						{ "name": "identifier", "xtype": "hidden" },
 						{ "fieldLabel": "${newPasswordLabel!translation(newPasswordLabelKey!"NEW_PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
@@ -52,15 +62,10 @@ Ext.define('Login.view.LoginPanel', {
 </#if>
 <#if showRegister!false>
 		{
-			"xtype": "panel",
-			"defaults": { "border": false, "margin": 10 },
 			"title": "${registerTitle!translation(registerTitleKey!"REGISTER_TITLE")?json_string}",
-			"layout": "card",
 			"items": [
 				{
-					"xtype": "form",
 					"itemId": "register",
-					"defaults": { "anchor": "100%", "allowBlank": false, "xtype": "textfield", "enableKeyEvents": true },
 					"items": [
 						{ "fieldLabel": "${identifierLabel!translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier", "vtype": "email" },
 						${(extraRegisterStep1Fields!)?json_string}
@@ -74,9 +79,7 @@ Ext.define('Login.view.LoginPanel', {
 					]
 				},
 				{
-					"xtype": "form",
 					"itemId": "activate",
-					"defaults": { "anchor": "100%", "allowBlank": false, "xtype": "textfield", "enableKeyEvents": true },
 					"items": [
 						{ "fieldLabel": "${activationKeyLabel!translation(activationKeyLabelKey!"ACTIVATION_KEY_LABEL")?json_string}", "name": "identifier" },
 						{ "fieldLabel": "${newPasswordLabel!translation(newPasswordLabelKey!"NEW_PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
@@ -93,15 +96,10 @@ Ext.define('Login.view.LoginPanel', {
 </#if>
 <#if showForgotPassword!true>
 		{
-			"xtype": "panel",
-			"defaults": { "border": false, "margin": 10 },
 			"title": "${resetTitle!translation(resetTitleKey!"RESET_TITLE")?json_string}",
-			"layout": "card",
 			"items": [
 				{
-					"xtype": "form",
 					"itemId": "reset",
-					"defaults": { "anchor": "100%", "allowBlank": false, "xtype": "textfield", "enableKeyEvents": true },
 					"items": [
 						{ "fieldLabel": "${identifierLabel!translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier" },
 						${(extraResetStep1PanelFields!)?json_string}
@@ -114,9 +112,7 @@ Ext.define('Login.view.LoginPanel', {
 					]
 				},
 				{
-					"xtype": "form",
 					"itemId": "activate",
-					"defaults": { "anchor": "100%", "allowBlank": false, "xtype": "textfield", "enableKeyEvents": true },
 					"items": [
 						{ "fieldLabel": "${activationKeyLabel!translation(activationKeyLabelKey!"ACTIVATION_KEY_LABEL")?json_string}", "name": "identifier" },
 						{ "fieldLabel": "${newPasswordLabel!translation(newPasswordLabelKey!"NEW_PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
