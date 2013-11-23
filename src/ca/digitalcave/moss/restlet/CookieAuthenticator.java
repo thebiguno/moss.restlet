@@ -203,7 +203,9 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			result.setIdentifier(p.getFirstValue("identifier"));
 			result.setSecret(p.getFirstValue("secret"));
 			result.getParameters().set("expires", Long.toString(expires));
-			result.getParameters().set("authenticator", p.getFirstValue("authenticator"));
+			if (p.getFirstValue("authenticator") != null) {
+				result.getParameters().set("authenticator", p.getFirstValue("authenticator"));
+			}
 			if (isAllowRemember()) {
 				result.getParameters().set("remember", p.getFirstValue("remember"));
 			}
@@ -236,6 +238,8 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		final String authenticator = cr.getParameters().getFirstValue("authenticator");
 		if (authenticator != null) p.set("authenticator", authenticator);
 
+		System.out.println(p.getQueryString());
+		
 		return p.getQueryString();
 	}
 
@@ -261,25 +265,33 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	
 		ChallengeResponse cr = null;
 		if (action == Action.LOGIN) {
-			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
-			cr.getParameters().add("impersonate", form.getFirstValue("impersonate"));
+			if (form.getFirstValue("impersonate") == null) {
+				cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
+			} else {
+				cr = new ChallengeResponse(getScheme(), form.getFirstValue("impersonate"), form.getFirstValue("secret"));
+				cr.getParameters().set("authenticator", form.getFirstValue("identifier"));
+			}
 			if (isAllowRemember()) {
 				cr.getParameters().add("remember", form.getFirstValue("remember") != null ? "true" : "false");
 			}
 		} else if (action == Action.LOGOUT) {
-			cr = parse(request.getCookies().getFirst(cookieName).getValue());
-			
-			final String authenticator = cr.getParameters().getFirstValue("authenticator");
-			if (authenticator == null) {
-				// user is logged in normally, discard their credentials 
-				request.setChallengeResponse(null);
-				final CookieSetting credentialsCookie = getCredentialsCookie(request, response);
-				credentialsCookie.setMaxAge(0);
-				return false;
-			} else {
-				// user is currently impersonating another user so restore them to their original credentials
-				cr.setIdentifier(authenticator);
-				cr.getParameters().remove("authenticator");
+			try {
+				cr = parse(request.getCookies().getFirst(cookieName).getValue());
+				
+				final String authenticator = cr.getParameters().getFirstValue("authenticator");
+				if (authenticator == null) {
+					// user is logged in normally, discard their credentials 
+					request.setChallengeResponse(null);
+					final CookieSetting credentialsCookie = getCredentialsCookie(request, response);
+					credentialsCookie.setMaxAge(0);
+					return false;
+				} else {
+					// user is currently impersonating another user so restore them to their original credentials
+					cr.setIdentifier(authenticator);
+					cr.getParameters().removeAll("authenticator");
+				}
+			} catch (Throwable t) {
+				; // no cookie, already not logged in
 			}
 		} else if (action == Action.RESET) {
 			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
@@ -296,10 +308,13 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			cr.getParameters().add("remember", form.getFirstValue("remember"));
 		} else if (action == Action.IMPERSONATE) {
 			cr = parse(request.getCookies().getFirst(cookieName).getValue());
-			cr.getParameters().add("impersonate", form.getFirstValue("impersonate"));
+			cr.getParameters().add("authenticator", cr.getIdentifier());
+			cr.setIdentifier(form.getFirstValue("impersonate"));
 			request.setChallengeResponse(cr);
 		}
-		cr.getParameters().add("action", form.getFirstValue("action"));
+		if (cr != null) {
+			cr.getParameters().add("action", form.getFirstValue("action"));
+		}
 		request.setChallengeResponse(cr);
 		return true;
 	}

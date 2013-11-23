@@ -44,7 +44,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 		// response time are more difficult
 		try { Thread.sleep((long) (Math.random() * 500));} catch (Throwable e){}
 		
-		final Action action = Action.find(cr.getParameters().getFirstValue("action"));
+		final Action action = Action.find(cr.getParameters().getFirstValue("action","login"));
 		boolean success = true;
 		String loginActivationKey = null;
 		
@@ -53,7 +53,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 			if (user == null) {
 				success = false;
 			}
-			if (isPasswordExpired()) {
+			if (isPasswordExpired(user.getIdentifier())) {
 				loginActivationKey = UUID.randomUUID().toString();
 				updateActivationKey(user.getIdentifier(), loginActivationKey);
 			}
@@ -134,7 +134,7 @@ public abstract class AbstractCookieIndexResource extends ServerResource {
 	 * Override this method to force password reset.
 	 * Default implementation returns false.
 	 */
-	protected boolean isPasswordExpired() {
+	protected boolean isPasswordExpired(String identifier) {
 		return false;
 	}
 	
