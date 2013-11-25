@@ -262,6 +262,19 @@ public class PasswordChecker {
 		return this;
 	}
 
+	public boolean isLengthEnforced() {
+		return minimumLength > 0;
+	}
+	public boolean isStrengthEnforced() {
+		return minimumStrength > 0;
+	}
+	public boolean isVarianceEnforced() {
+		return minimumVariance > 0;
+	}
+	public boolean isMultiClassEnforced() {
+		return minimumClasses > 0;
+	}
+	
 	public boolean isDictionaryEnforced() {
 		return dictionaryEnforced;
 	}
