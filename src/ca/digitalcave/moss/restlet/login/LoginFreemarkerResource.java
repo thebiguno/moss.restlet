@@ -71,7 +71,9 @@ public class LoginFreemarkerResource extends ServerResource {
 			config.setLocalizedLookup(false);
 			config.setLocale(Locale.ENGLISH);
 			config.setTemplateUpdateDelay(0);
-			config.setObjectWrapper(new BeansWrapper());
+			final BeansWrapper beansWrapper = new BeansWrapper();
+			beansWrapper.setSimpleMapWrapper(true);
+			config.setObjectWrapper(beansWrapper);
 			config.setDateFormat("yyyy'-'MM'-'dd");
 			config.setDateTimeFormat("yyyy'-'MM'-'dd' 'HH:mm");
 			config.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
