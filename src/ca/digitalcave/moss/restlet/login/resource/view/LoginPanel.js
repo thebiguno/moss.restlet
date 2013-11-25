@@ -37,6 +37,9 @@ Ext.define('Login.view.LoginPanel', {
 					"items": [
 						{ "fieldLabel": "${identifierLabel!translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier" },
 						{ "fieldLabel": "${passwordLabel!translation(passwordLabelKey!"PASSWORD_LABEL")?json_string}", "inputType": "password", "name": "secret" },
+						<#if showRemember!true>
+						{ "fieldLabel": "${rememberLabel!translation(rememberLabelKey!"REMEMBER_LABEL")?json_string}", "xtype": "checkbox", "name": "remember" },
+						</#if>
 						<#if extraLoginStep1Fields??><@extraLoginStep1Fields/></#if>
 						{ "xtype": "animatedlabel", "itemId": "messageLogin1" }
 					],

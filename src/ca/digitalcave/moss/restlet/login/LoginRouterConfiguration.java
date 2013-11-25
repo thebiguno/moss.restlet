@@ -1,5 +1,6 @@
 package ca.digitalcave.moss.restlet.login;
 
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import ca.digitalcave.moss.restlet.util.PasswordChecker;
@@ -19,6 +20,11 @@ public class LoginRouterConfiguration implements Cloneable {
 	public boolean showRegister = false;
 	
 	/**
+	 * Show the 'remember me' checkbox on login panel
+	 */
+	public boolean showRemember = true;
+	
+	/**
 	 * An instance of PasswordChecker; required only if the default 
 	 * instance does not match your password policy.
 	 */
@@ -28,7 +34,24 @@ public class LoginRouterConfiguration implements Cloneable {
 	public String activationKeyLabelKey;
 	public String activationKeySentMessage;
 	public String activationKeySentMessageKey;
-	public String applicationControllers;
+	/**
+	 * A list of extra EXT JS 4 controller class names, to be instantiated by Login's application.
+	 */
+	public String[] applicationControllers;
+	/**
+	 * A list of extra EXT JS 4 model class names, to be instantiated by Login's application.
+	 */
+	public String[] applicationModels;
+	/**
+	 * A list of extra EXT JS 4 view class names, to be instantiated by Login's application.
+	 */
+	public String[] applicationViews;
+	/**
+	 * A mapping between application names (e.g. MyApplication) and top level paths (e.g. app).
+	 * This is only needed when you integrate components from a different application into the 
+	 * login application.
+	 */
+	public Map<String, String> applicationLoaderPaths;
 	public String backButton;
 	public String backButtonKey;
 	public String createAccountButton;
@@ -89,12 +112,16 @@ public class LoginRouterConfiguration implements Cloneable {
 		result.showForgotPassword = this.showForgotPassword;
 		result.showLogin = this.showLogin;
 		result.showRegister = this.showRegister;
+		result.showRemember = this.showRemember;
 				
 		result.passwordChecker = this.passwordChecker;
 				
 		result.activationKeyLabel = this.activationKeyLabel;
 		result.activationKeyLabelKey = this.activationKeyLabelKey;
 		result.applicationControllers = this.applicationControllers;
+		result.applicationModels = this.applicationModels;
+		result.applicationViews = this.applicationViews;
+		result.applicationLoaderPaths = this.applicationLoaderPaths;
 		result.backButton = this.backButton;
 		result.backButtonKey = this.backButtonKey;
 		result.createAccountButton = this.createAccountButton;
@@ -152,6 +179,10 @@ public class LoginRouterConfiguration implements Cloneable {
 		return showRegister;
 	}
 
+	public boolean isShowRemember() {
+		return showRemember;
+	}
+
 	public PasswordChecker getPasswordChecker() {
 		return passwordChecker;
 	}
@@ -172,8 +203,20 @@ public class LoginRouterConfiguration implements Cloneable {
 		return activationKeySentMessageKey;
 	}
 
-	public String getApplicationControllers() {
+	public String[] getApplicationControllers() {
 		return applicationControllers;
+	}
+
+	public String[] getApplicationModels() {
+		return applicationModels;
+	}
+
+	public String[] getApplicationViews() {
+		return applicationViews;
+	}
+
+	public Map<String, String> getApplicationLoaderPaths() {
+		return applicationLoaderPaths;
 	}
 
 	public String getBackButton() {
