@@ -23,10 +23,6 @@ public class PasswordChecker {
 	private List<Pattern> patterns;
 	private String wordlistPath;
 	private Packer packer;
-	private boolean strengthEnforced = true;
-	private boolean lengthEnforced = true;
-	private boolean varianceEnforced = true;
-	private boolean multiclassEnforced = true;
 	private boolean dictionaryEnforced = true;
 	private boolean historyEnforced = false;
 	private boolean patternsEnforced = false;
@@ -103,7 +99,7 @@ public class PasswordChecker {
 	}
 
 	public boolean testMulticlass(String password) {
-		return multiclassEnforced && !isNotMulticlass(password) ? true : false;
+		return minimumClasses > 0 && !isNotMulticlass(password) ? true : false;
 	}
 	public boolean isNotMulticlass(String password) {
 		return getClasses(password) < minimumClasses;
@@ -121,21 +117,21 @@ public class PasswordChecker {
 	}
 
 	public boolean testStrength(String password) {
-		return strengthEnforced && !isWeak(password) ? true : false;
+		return minimumStrength > 0 && !isWeak(password) ? true : false;
 	}
 	public boolean isWeak(String password) {
 		return getStrenthScore(password) < getMinimumStrength();
 	}
 
 	public boolean testLength(String password) {
-		return lengthEnforced && !isShort(password) ? true : false;
+		return minimumLength > 0 && !isShort(password) ? true : false;
 	}
 	public boolean isShort(String password) {
 		return password.length() < getMinimumLength();
 	}
 
 	public boolean testVariance(String password) {
-		return varianceEnforced && !isUnvaried(password) ? true : false;
+		return minimumVariance > 0 && !isUnvaried(password) ? true : false;
 	}
 	public boolean isUnvaried(String password) {
 		if (password == null || password.length() == 0) return true;
@@ -279,38 +275,6 @@ public class PasswordChecker {
 	}
 	public PasswordChecker setHistoryEnforced(boolean historyEnforced) {
 		this.historyEnforced = historyEnforced;
-		return this;
-	}
-
-	public boolean isLengthEnforced() {
-		return lengthEnforced;
-	}
-	public PasswordChecker setLengthEnforced(boolean lengthEnforced) {
-		this.lengthEnforced = lengthEnforced;
-		return this;
-	}
-	
-	public boolean isVarianceEnforced() {
-		return varianceEnforced;
-	}
-	public PasswordChecker setVarianceEnforced(boolean varianceEnforced) {
-		this.varianceEnforced = varianceEnforced;
-		return this;
-	}
-
-	public boolean isStrengthEnforced() {
-		return strengthEnforced;
-	}
-	public PasswordChecker setStrengthEnforced(boolean strengthEnforced) {
-		this.strengthEnforced = strengthEnforced;
-		return this;
-	}
-
-	public boolean isMultiClassEnforced() {
-		return multiclassEnforced;
-	}
-	public PasswordChecker setMultiClassEnforced(boolean multiClassEnforced) {
-		this.multiclassEnforced = multiClassEnforced;
 		return this;
 	}
 

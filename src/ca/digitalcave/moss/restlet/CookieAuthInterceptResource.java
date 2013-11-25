@@ -28,7 +28,7 @@ import ca.digitalcave.moss.crypto.MossHash;
 import ca.digitalcave.moss.restlet.CookieAuthenticator.Action;
 
 
-public abstract class AbstractCookieIndexResource extends ServerResource {
+public abstract class CookieAuthInterceptResource extends ServerResource {
 
 	@Override
 	protected void doInit() throws ResourceException {
