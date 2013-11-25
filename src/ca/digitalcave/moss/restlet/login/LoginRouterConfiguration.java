@@ -28,7 +28,12 @@ public class LoginRouterConfiguration implements Cloneable {
 	public String activationKeyLabelKey;
 	public String activationKeySentMessage;
 	public String activationKeySentMessageKey;
-	public String applicationControllers;
+	/**
+	 * A list of EXT JS 4 controller class names, to be instantiated by Login's application.
+	 */
+	public String[] applicationControllers;
+	public String[] applicationModels;
+	public String[] applicationViews;
 	public String backButton;
 	public String backButtonKey;
 	public String createAccountButton;
@@ -95,6 +100,8 @@ public class LoginRouterConfiguration implements Cloneable {
 		result.activationKeyLabel = this.activationKeyLabel;
 		result.activationKeyLabelKey = this.activationKeyLabelKey;
 		result.applicationControllers = this.applicationControllers;
+		result.applicationModels = this.applicationModels;
+		result.applicationViews = this.applicationViews;
 		result.backButton = this.backButton;
 		result.backButtonKey = this.backButtonKey;
 		result.createAccountButton = this.createAccountButton;
@@ -172,8 +179,16 @@ public class LoginRouterConfiguration implements Cloneable {
 		return activationKeySentMessageKey;
 	}
 
-	public String getApplicationControllers() {
+	public String[] getApplicationControllers() {
 		return applicationControllers;
+	}
+
+	public String[] getApplicationModels() {
+		return applicationModels;
+	}
+
+	public String[] getApplicationViews() {
+		return applicationViews;
 	}
 
 	public String getBackButton() {
