@@ -238,8 +238,6 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		final String authenticator = cr.getParameters().getFirstValue("authenticator");
 		if (authenticator != null) p.set("authenticator", authenticator);
 
-		System.out.println(p.getQueryString());
-		
 		return p.getQueryString();
 	}
 
