@@ -20,6 +20,11 @@ public class LoginRouterConfiguration implements Cloneable {
 	public boolean showRegister = false;
 	
 	/**
+	 * Show the 'remember me' checkbox on login panel
+	 */
+	public boolean showRemember = true;
+	
+	/**
 	 * An instance of PasswordChecker; required only if the default 
 	 * instance does not match your password policy.
 	 */
@@ -30,10 +35,16 @@ public class LoginRouterConfiguration implements Cloneable {
 	public String activationKeySentMessage;
 	public String activationKeySentMessageKey;
 	/**
-	 * A list of EXT JS 4 controller class names, to be instantiated by Login's application.
+	 * A list of extra EXT JS 4 controller class names, to be instantiated by Login's application.
 	 */
 	public String[] applicationControllers;
+	/**
+	 * A list of extra EXT JS 4 model class names, to be instantiated by Login's application.
+	 */
 	public String[] applicationModels;
+	/**
+	 * A list of extra EXT JS 4 view class names, to be instantiated by Login's application.
+	 */
 	public String[] applicationViews;
 	/**
 	 * A mapping between application names (e.g. MyApplication) and top level paths (e.g. app).
@@ -101,6 +112,7 @@ public class LoginRouterConfiguration implements Cloneable {
 		result.showForgotPassword = this.showForgotPassword;
 		result.showLogin = this.showLogin;
 		result.showRegister = this.showRegister;
+		result.showRemember = this.showRemember;
 				
 		result.passwordChecker = this.passwordChecker;
 				
@@ -165,6 +177,10 @@ public class LoginRouterConfiguration implements Cloneable {
 
 	public boolean isShowRegister() {
 		return showRegister;
+	}
+
+	public boolean isShowRemember() {
+		return showRemember;
 	}
 
 	public PasswordChecker getPasswordChecker() {

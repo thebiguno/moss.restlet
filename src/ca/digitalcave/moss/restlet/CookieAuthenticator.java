@@ -33,7 +33,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	private volatile int maxCookieAge = -1;
 	private volatile int maxExpiryAge = Integer.MAX_VALUE;
 	private volatile boolean secure = false;
-	private volatile boolean allowRemember = false;
+	private volatile boolean allowRemember = true;
 
 	public CookieAuthenticator(Context context, boolean optional, Key key) {
 		this(context, optional, key, "_auth", "/index");
