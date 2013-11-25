@@ -1,3 +1,14 @@
+<#if applicationLoaderPaths??>
+Ext.Loader.setConfig({
+	"enabled": true,
+	"paths": {
+	<#list applicationLoaderPaths!?keys as path>
+		"${path!?json_string}": "${applicationLoaderPaths[path]!?json_string}"
+	</#list>
+	}
+});
+</#if>
+
 Ext.application({
 	"name": "Login",
 	"appFolder": "${routerAttachPoint}",

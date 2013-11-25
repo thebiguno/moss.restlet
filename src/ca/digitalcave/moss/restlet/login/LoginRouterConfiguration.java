@@ -1,5 +1,6 @@
 package ca.digitalcave.moss.restlet.login;
 
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import ca.digitalcave.moss.restlet.util.PasswordChecker;
@@ -34,6 +35,12 @@ public class LoginRouterConfiguration implements Cloneable {
 	public String[] applicationControllers;
 	public String[] applicationModels;
 	public String[] applicationViews;
+	/**
+	 * A mapping between application names (e.g. MyApplication) and top level paths (e.g. app).
+	 * This is only needed when you integrate components from a different application into the 
+	 * login application.
+	 */
+	public Map<String, String> applicationLoaderPaths;
 	public String backButton;
 	public String backButtonKey;
 	public String createAccountButton;
@@ -102,6 +109,7 @@ public class LoginRouterConfiguration implements Cloneable {
 		result.applicationControllers = this.applicationControllers;
 		result.applicationModels = this.applicationModels;
 		result.applicationViews = this.applicationViews;
+		result.applicationLoaderPaths = this.applicationLoaderPaths;
 		result.backButton = this.backButton;
 		result.backButtonKey = this.backButtonKey;
 		result.createAccountButton = this.createAccountButton;
@@ -189,6 +197,10 @@ public class LoginRouterConfiguration implements Cloneable {
 
 	public String[] getApplicationViews() {
 		return applicationViews;
+	}
+
+	public Map<String, String> getApplicationLoaderPaths() {
+		return applicationLoaderPaths;
 	}
 
 	public String getBackButton() {
