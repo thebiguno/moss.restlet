@@ -19,9 +19,9 @@ import org.solinger.cracklib.Packer;
 import ca.digitalcave.moss.crypto.MossHash;
 
 public class PasswordChecker {
-	private String patternlistPath;
+	private String patternsPath;
 	private List<Pattern> patterns;
-	private String wordlistPath;
+	private String dictionaryPath;
 	private Packer packer;
 	private boolean dictionaryEnforced = true;
 	private boolean historyEnforced = false;
@@ -32,7 +32,10 @@ public class PasswordChecker {
 	private int minimumVariance = 5;
 	private int minimumClasses = 2;
 
-	public boolean isValid(String identifier, String password) throws Exception {
+	public boolean test(String identifier, String password) {
+		return isValid(identifier, password);
+	}
+	public boolean isValid(String identifier, String password) {
 		return testLength(password) 
 				&& testStrength(password) 
 				&& testVariance(password) 
@@ -307,19 +310,34 @@ public class PasswordChecker {
 		return this;
 	}
 	
-	public PasswordChecker setWordlistPath(String wordlistPath) {
-		this.wordlistPath = wordlistPath;
+	public PasswordChecker setDictionaryPath(String dictionaryPath) {
+		this.dictionaryPath = dictionaryPath;
+		try {
+			initDictionary();
+		} catch (IOException e) {
+			Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Unable to initialize dictionary", e);
+		}
 		return this;
 	}
-	public String getWordlistPath() {
-		return wordlistPath;
+	public String getDictionaryPath() {
+		return dictionaryPath;
+	}
+	
+	public PasswordChecker setPatternsPath(String patternsPath) {
+		this.patternsPath = patternsPath;
+		try {
+			initPatterns();
+		} catch (IOException e) {
+			Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Unable to initialize patterns", e);
+		}
+		return this;
 	}
 	
 	protected void initDictionary() throws IOException {
-		if (this.wordlistPath == null || this.wordlistPath.trim().length() == 0) {
+		if (this.dictionaryPath == null || this.dictionaryPath.trim().length() == 0) {
 			initDefaultDictionary();
 		} else {
-			initDictionary(this.wordlistPath);
+			initDictionary(this.dictionaryPath);
 		}
 	}
 	protected void initDefaultDictionary() throws IOException {
@@ -351,10 +369,10 @@ public class PasswordChecker {
 	}
 	
 	protected void initPatterns() throws IOException {
-		if (this.wordlistPath == null || this.wordlistPath.trim().length() == 0) {
+		if (this.patternsPath == null || this.patternsPath.trim().length() == 0) {
 			initDefaultPatterns();
 		} else {
-			initPatterns(this.patternlistPath);
+			initPatterns(this.patternsPath);
 		}
 	}
 	protected void initDefaultPatterns() {
