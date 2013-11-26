@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.restlet.Client;
 import org.restlet.Request;
+import org.restlet.data.ChallengeRequest;
 import org.restlet.data.ChallengeResponse;
 import org.restlet.data.ChallengeScheme;
 import org.restlet.data.CharacterSet;
@@ -49,13 +50,18 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 		String loginActivationKey = null;
 		
 		if (action == Action.LOGIN) {
+			for (ChallengeRequest req : getResponse().getChallengeRequests()) {
+				if (req.getScheme() == ChallengeScheme.HTTP_COOKIE) {
+					if (req.isStale()) {
+						loginActivationKey = req.getServerNonce();
+						updateActivationKey(CookieAuthenticator.getAuthenticator(cr), loginActivationKey);
+					}
+				}
+			}
+
 			final User user = (User) getClientInfo().getUser();
 			if (user == null) {
 				success = false;
-			}
-			if (isPasswordExpired(user.getIdentifier())) {
-				loginActivationKey = UUID.randomUUID().toString();
-				updateActivationKey(user.getIdentifier(), loginActivationKey);
 			}
 		} else if (action == Action.IMPERSONATE) {
 			if (isAllowImpersonate() == false || cr.getParameters().getFirstValue("authenticator") == null) {
@@ -128,14 +134,6 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 	 */
 	protected Properties getConfig() {
 		return new Properties();
-	}
-	
-	/**
-	 * Override this method to force password reset.
-	 * Default implementation returns false.
-	 */
-	protected boolean isPasswordExpired(String identifier) {
-		return false;
 	}
 	
 	/**
@@ -275,6 +273,5 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 		final Thread emailThread = new Thread(emailRunnable, "Email");
 		emailThread.setDaemon(false);
 		emailThread.start();
-
 	}
 }

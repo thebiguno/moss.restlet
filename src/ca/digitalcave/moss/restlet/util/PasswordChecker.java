@@ -341,7 +341,7 @@ public class PasswordChecker {
 		}
 	}
 	protected void initDefaultDictionary() throws IOException {
-		initDictionary(new InputStreamReader(getClass().getResourceAsStream("words.txt")));
+		initDictionary(new InputStreamReader(PasswordChecker.class.getResourceAsStream("words.txt")));
 	}
 	protected void initDictionary(String path) throws IOException {
 		initDictionary(new FileReader(path));

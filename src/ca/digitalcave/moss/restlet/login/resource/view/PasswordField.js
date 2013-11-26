@@ -37,6 +37,7 @@ Ext.define("Login.view.PasswordField", {
 							if (this.lastCheck.strength === false) result += "${passwordStrength!translation("PASSWORD_STRENGTH")?json_string}<br/>";
 							if (this.lastCheck.variance === false) result += "${passwordVariance!translation("PASSWORD_VARIANCE")?json_string}<br/>";
 							if (this.lastCheck.classes === false) result += "${passwordClasses!translation("PASSWORD_CLASSES")?json_string}<br/>";
+							if (this.lastCheck.history === false) result += "${passwordHistory!translation("PASSWORD_HISTORY")?json_string}<br/>";
 							if (this.lastCheck.dictionary === false) result += "${passwordDictionary!translation("PASSWORD_DICTIONARY")?json_string}<br/>";
 							if (this.lastCheck.pattern === false) result += "${passwordPattern!translation("PASSWORD_PATTERN")?json_string}<br/>";
 							if (this.lastCheck.custom === false) result += "${passwordCustom!translation("PASSWORD_CUSTOM")?json_string}<br/>";

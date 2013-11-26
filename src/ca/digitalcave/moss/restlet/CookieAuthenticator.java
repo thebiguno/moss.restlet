@@ -3,6 +3,7 @@ package ca.digitalcave.moss.restlet;
 import java.security.Key;
 import java.util.Collections;
 import java.util.Map;
+import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
@@ -110,10 +111,8 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		response.setStatus(Status.CLIENT_ERROR_UNAUTHORIZED);
 		
 		final ChallengeRequest cr = new ChallengeRequest(getScheme());
+		cr.setServerNonce(UUID.randomUUID().toString());
 		cr.setStale(stale);
-		if (response.getAttributes().get("activationKey") != null) {
-			cr.getParameters().set("activationKey", (String) response.getAttributes().get("activationKey"));
-		}
 		response.getChallengeRequests().add(cr);
 	}
 	
@@ -417,4 +416,11 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		}
 	}
 
+	public static String getAuthenticator(ChallengeResponse cr) {
+		if (cr.getParameters().getFirstValue("authenticator") != null) {
+			return cr.getParameters().getFirstValue("authenticator");
+		} else {
+			return cr.getIdentifier();
+		}
+	}
 }
