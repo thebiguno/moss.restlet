@@ -43,7 +43,6 @@ public class LoginFreemarkerResource extends ServerResource {
 				configuration.routerAttachPoint = getReference().toString().replace(getRootRef().toString(), "").replace(getReference().getRemainingPart(), "").replaceFirst("^/", "");
 			}
 			final LoginRouterConfiguration dataModel = configuration.clone();
-			ResourceBundle.clearCache();	//TODO Remove this
 			dataModel.translation = ResourceBundle.getBundle(configuration.i18nBase);
 			if (configuration.i18nBaseCustom != null) dataModel.customTranslation = ResourceBundle.getBundle(configuration.i18nBaseCustom);
 			final TemplateRepresentation entity = new TemplateRepresentation(path, getFreemarkerConfig(), dataModel, variant.getMediaType());
