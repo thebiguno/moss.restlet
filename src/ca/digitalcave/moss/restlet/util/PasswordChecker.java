@@ -102,7 +102,7 @@ public class PasswordChecker {
 	}
 
 	public boolean testMulticlass(String password) {
-		return minimumClasses > 0 && !isNotMulticlass(password) ? true : false;
+		return minimumClasses == 0 || !isNotMulticlass(password) ? true : false;
 	}
 	public boolean isNotMulticlass(String password) {
 		return getClasses(password) < minimumClasses;
@@ -120,21 +120,21 @@ public class PasswordChecker {
 	}
 
 	public boolean testStrength(String password) {
-		return minimumStrength > 0 && !isWeak(password) ? true : false;
+		return minimumStrength == 0 || !isWeak(password) ? true : false;
 	}
 	public boolean isWeak(String password) {
 		return getStrengthScore(password) < getMinimumStrength();
 	}
 
 	public boolean testLength(String password) {
-		return minimumLength > 0 && !isShort(password) ? true : false;
+		return minimumLength == 0 || !isShort(password) ? true : false;
 	}
 	public boolean isShort(String password) {
 		return password.length() < getMinimumLength();
 	}
 
 	public boolean testVariance(String password) {
-		return minimumVariance > 0 && !isUnvaried(password) ? true : false;
+		return minimumVariance == 0 || !isUnvaried(password) ? true : false;
 	}
 	public boolean isUnvaried(String password) {
 		if (password == null || password.length() == 0) return true;
@@ -149,7 +149,7 @@ public class PasswordChecker {
 	}
 
 	public boolean testDictionary(String password) {
-		return dictionaryEnforced && !isInDictionary(password) ? true : false;
+		return !dictionaryEnforced || !isInDictionary(password) ? true : false;
 	}
 	public synchronized boolean isInDictionary(String password) {
 		if (packer == null) {
@@ -184,7 +184,7 @@ public class PasswordChecker {
 	}
 
 	public boolean testHistory(String identifier, String password) {
-		return historyEnforced && !isInHistory(identifier, password) ? true : false; 
+		return !historyEnforced || !isInHistory(identifier, password) ? true : false; 
 	}
 	public boolean isInHistory(String identifier, String password) {
 		for(String hash : getHistory(identifier)){
@@ -203,7 +203,7 @@ public class PasswordChecker {
 			}
 		}
 			
-		return patternsEnforced && !isRestricted(password) ? true : false;
+		return !patternsEnforced || !isRestricted(password) ? true : false;
 	}
 	public boolean isRestricted(String password) {
 		for (Pattern pattern : getRestrictedPatterns()) {
@@ -215,7 +215,7 @@ public class PasswordChecker {
 	}
 
 	public boolean testCustom(String identifier, String password) {
-		return customEnforced && !isCustom(identifier, password) ? true : false;
+		return !customEnforced || !isCustom(identifier, password) ? true : false;
 	}
 
 	/**
