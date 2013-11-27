@@ -352,7 +352,7 @@ public class PasswordChecker {
 			this.packer = null;
 		}
 		
-		final File file = new File(System.getProperty("java.io.tmpdir", "words"));
+		final File file = new File(System.getProperty("java.io.tmpdir"), "words");
 		final Packer p = new Packer(file.getAbsolutePath(),"rw");
 		try {
 			final BufferedReader br = new BufferedReader(reader);
