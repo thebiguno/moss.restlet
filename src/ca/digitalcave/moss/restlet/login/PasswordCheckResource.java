@@ -35,7 +35,7 @@ public class PasswordCheckResource extends ServerResource {
 				
 				w.write("{");
 				
-				final int score = checker.getStrenthScore(password);
+				final int score = checker.getStrengthScore(password);
 				w.write("\"score\":");
 				w.write(Integer.toString(score));
 				

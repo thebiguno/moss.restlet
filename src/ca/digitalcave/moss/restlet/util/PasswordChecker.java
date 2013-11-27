@@ -57,7 +57,7 @@ public class PasswordChecker {
 	 * <li>@param password</li>
 	 * @return
 	 */
-	public int getStrenthScore(String password) {
+	public int getStrengthScore(String password) {
 		float factor = 0;
 
 		if (hasLower(password)) factor += 2.6f;
@@ -71,7 +71,7 @@ public class PasswordChecker {
 	}
 
 	public String getStrenthString(String password) {
-		int strength = getStrenthScore(password);
+		int strength = getStrengthScore(password);
 		if (strength >= 80) return "Excellent";
 		if (strength >= 60) return "Strong";
 		if (strength >= 40) return "Average";
@@ -123,7 +123,7 @@ public class PasswordChecker {
 		return minimumStrength > 0 && !isWeak(password) ? true : false;
 	}
 	public boolean isWeak(String password) {
-		return getStrenthScore(password) < getMinimumStrength();
+		return getStrengthScore(password) < getMinimumStrength();
 	}
 
 	public boolean testLength(String password) {
