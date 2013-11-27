@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -79,20 +78,6 @@ public class LoginFreemarkerResource extends ServerResource {
 			freemarkerConfig = config;
 		}
 		return freemarkerConfig;
-	}
-	
-	/**
-	 * Returns the data model to inject into the freemarker template.  
-	 * 
-	 * By default, this method injects the Restlet User object under key "user", and the HTTP request 
-	 * attributes under key "requestAttributes".  Override this method if you need more information in your data model.
-	 * @return
-	 */
-	protected Object getDataModel(){
-		final HashMap<String, Object> dataModel = new HashMap<String, Object>();
-		dataModel.put("user", getClientInfo().getUser());
-		dataModel.put("requestAttributes", getRequestAttributes());
-		return dataModel;
 	}
 	
 	private static void copyStream(InputStream is, OutputStream os) throws IOException {
