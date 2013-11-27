@@ -99,7 +99,7 @@ Ext.define("Login.controller.LoginController", {
 					window.location.reload();
 				},
 				"failure": function(form, action) {
-					cmp.up('form').down('animatedlabel[itemId=message]').setTextAnimated("${unknownErrorMessage!translation(unknownErrorMessageKey!"UNKNOWN_ERROR_MESSAGE")?json_string}");
+					cmp.up('form').down('animatedlabel[itemId=messageForgotPassword2]').setTextAnimated("${unknownErrorMessage!translation(unknownErrorMessageKey!"UNKNOWN_ERROR_MESSAGE")?json_string}");
 				}
 			});
 		}

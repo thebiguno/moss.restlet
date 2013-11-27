@@ -14,6 +14,8 @@ Ext.define("Login.view.PasswordField", {
 		return this.down("textfield[itemId='password']").isValid() && this.down("textfield[itemId='confirm']").isValid();
 	},
 	
+	"required": true,
+	
 	"initComponent": function(){
 		this.items = [
 			{
@@ -28,7 +30,12 @@ Ext.define("Login.view.PasswordField", {
 						"options": this,
 						"flex": 1,
 						"validator": function(value){
-							this.ownerCt.getComponent(1).validate();	//Validate that passwords match
+							var passwordField = this.up("passwordfield");
+							var confirmField = passwordField.down("textfield[itemId=confirm]");
+							var confirmPassword = confirmField.getValue();
+							if (value.length == 0 && confirmPassword.length == 0 && !passwordField.required) return true;
+						
+							confirmField.validate();	//Validate that passwords match
 							if (this.lastCheck == null) return "${passwordUnvalidated!translation("PASSWORD_UNVALIDATED")?json_string}";
 							else if (this.lastCheck.passed) return true;
 							
@@ -56,7 +63,8 @@ Ext.define("Login.view.PasswordField", {
 						"margin": "0 0 0 5",
 						"submitValue": false,
 						"validator": function(value){
-							if (this.ownerCt.getComponent(0).getValue() != value) {
+							var passwordField = this.up("passwordfield").down("textfield[itemId=password]");
+							if (passwordField.getValue() != value) {
 								return "${passwordConfirmationMatch!translation("PASSWORD_CONFIRMATION_MATCH")?json_string}";
 							} else {
 								return true;
