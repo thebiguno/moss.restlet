@@ -7,7 +7,6 @@ import java.util.UUID;
 
 import org.restlet.Client;
 import org.restlet.Request;
-import org.restlet.data.ChallengeRequest;
 import org.restlet.data.ChallengeResponse;
 import org.restlet.data.ChallengeScheme;
 import org.restlet.data.CharacterSet;
@@ -50,15 +49,11 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 		String loginActivationKey = null;
 		
 		if (action == Action.LOGIN) {
-			for (ChallengeRequest req : getResponse().getChallengeRequests()) {
-				if (req.getScheme() == ChallengeScheme.HTTP_COOKIE) {
-					if (req.isStale()) {
-						loginActivationKey = req.getServerNonce();
-						updateActivationKey(CookieAuthenticator.getAuthenticator(cr), loginActivationKey);
-					}
-				}
+			if (cr.getParameters().getFirstValue("passwordExpired") != null) {
+				loginActivationKey = UUID.randomUUID().toString();
+				updateActivationKey(CookieAuthenticator.getAuthenticator(cr), loginActivationKey);
 			}
-
+			
 			final User user = (User) getClientInfo().getUser();
 			if (user == null) {
 				success = false;
@@ -180,7 +175,7 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 				w.write("\"success\":");
 				w.write(Boolean.toString(success));
 				if (activationKey != null) {
-					w.write("\"key\":");
+					w.write(",\"key\":\"");
 					w.write(activationKey);
 					w.write("\"");
 				}

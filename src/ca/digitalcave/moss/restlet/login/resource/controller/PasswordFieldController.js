@@ -16,7 +16,7 @@ Ext.define("Login.controller.PasswordFieldController", {
 		field.connection.request({
 			"url": "${routerAttachPoint}/checkpassword",
 			"params": {
-				"identifier": field.up("passwordfield").identifier ? field.up("passwordfield").identifier : field.up("form").down("textfield[name=identifier]").getValue(),
+				"identifier": field.up("passwordfield").identifier ? field.up("passwordfield").identifier : field.up("form").down("component[name=identifier]").getValue(),
 				"secret": field.getValue()
 			},
 			"success": function(response){

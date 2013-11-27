@@ -412,4 +412,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			return cr.getIdentifier();
 		}
 	}
+	public static void setPasswordExpired(Request request) {
+		request.getChallengeResponse().getParameters().add("passwordExpired", "true");
+	}
 }
