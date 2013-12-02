@@ -96,13 +96,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		if (loggable) {
 			getLogger().log(Level.FINE, "An authentication challenge was requested.");
 		}
-
 		response.setStatus(Status.CLIENT_ERROR_UNAUTHORIZED);
-		
-		final ChallengeRequest cr = new ChallengeRequest(getScheme());
-		cr.setServerNonce(UUID.randomUUID().toString());
-		cr.setStale(stale);
-		response.getChallengeRequests().add(cr);
 	}
 	
 	@Override
