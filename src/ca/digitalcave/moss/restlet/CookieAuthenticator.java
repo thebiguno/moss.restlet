@@ -3,7 +3,6 @@ package ca.digitalcave.moss.restlet;
 import java.security.Key;
 import java.util.Collections;
 import java.util.Map;
-import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
@@ -11,7 +10,6 @@ import java.util.logging.Level;
 import org.restlet.Context;
 import org.restlet.Request;
 import org.restlet.Response;
-import org.restlet.data.ChallengeRequest;
 import org.restlet.data.ChallengeResponse;
 import org.restlet.data.ChallengeScheme;
 import org.restlet.data.Cookie;
@@ -45,7 +43,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	 *     <li>Redirects are not used since they result in mixed content warnings when using Apache mod_proxy and HTTPS</li>
 	 *     <li>Both authentication identity and authorization identity (i.e. impersonation of another user)</li>
 	 *     <li>Automatic login after enrollment and both forced and elective password reset</li>
-	 *     <li>Time limited authentication window that moves with each valid request (defaults to max integer which is 24 days)</li>
+	 *     <li>Time limited authentication window that moves with each valid request (defaults to max integer which is 68 years)</li>
 	 *     <li>Automatic delay after invalid authentication (defaults to 1500 ms)</li>
 	 *     <li>Does not permit user enumeration attacks for account creation and password reset requests</li>
 	 *     <li>Can be combined with other authenticators</li></ul>
@@ -96,13 +94,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		if (loggable) {
 			getLogger().log(Level.FINE, "An authentication challenge was requested.");
 		}
-
 		response.setStatus(Status.CLIENT_ERROR_UNAUTHORIZED);
-		
-		final ChallengeRequest cr = new ChallengeRequest(getScheme());
-		cr.setServerNonce(UUID.randomUUID().toString());
-		cr.setStale(stale);
-		response.getChallengeRequests().add(cr);
 	}
 	
 	@Override
@@ -119,7 +111,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		} else {
 			final Cookie cookie = request.getCookies().getFirst(cookieName);
 			if (cookie != null) {
-				cr = parse(cookie.getValue());
+				cr = parse(cookie.getValue(), true);
 				request.setChallengeResponse(cr);
 			}
 			else {
@@ -175,13 +167,13 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		}
 	}
 
-	public ChallengeResponse parse(String encrypted) {
+	public ChallengeResponse parse(String encrypted, boolean checkExpiry) {
 		try {
 			final String decrypted = Crypto.decrypt(key, encrypted);
 			final Form p = new Form(decrypted);
 			
 			long expires = Long.parseLong(p.getFirstValue("expires"));
-			if (expires < System.currentTimeMillis()) {
+			if (checkExpiry && expires < System.currentTimeMillis()) {
 				return null;
 			}
 
@@ -225,7 +217,9 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		if (cr.getSecret() != null) p.set("secret", new String(cr.getSecret()));
 		final String authenticator = cr.getParameters().getFirstValue("authenticator");
 		if (authenticator != null) p.set("authenticator", authenticator);
-
+		
+//		System.out.println(p.getQueryString());
+		
 		return p.getQueryString();
 	}
 
@@ -251,9 +245,20 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	
 		ChallengeResponse cr = null;
 		if (action == Action.LOGIN) {
-			if (form.getFirstValue("impersonate") == null) {
+			if (form.getFirstValue("identifier") == null) {
+				// re-authenticating expired credentials
+				cr = parse(request.getCookies().getFirst(cookieName).getValue(), false);
+				if (cr == null) {
+					response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
+					return false;
+				}
+				cr.getParameters().removeAll("expires");
+				cr.setSecret(form.getFirstValue("secret"));
+			} else if (form.getFirstValue("impersonate") == null) {
+				// normal login 
 				cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
 			} else {
+				// attempting to sudo right away
 				cr = new ChallengeResponse(getScheme(), form.getFirstValue("impersonate"), form.getFirstValue("secret"));
 				cr.getParameters().set("authenticator", form.getFirstValue("identifier"));
 			}
@@ -262,7 +267,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			}
 		} else if (action == Action.LOGOUT) {
 			try {
-				cr = parse(request.getCookies().getFirst(cookieName).getValue());
+				cr = parse(request.getCookies().getFirst(cookieName).getValue(), true);
 				
 				final String authenticator = cr.getParameters().getFirstValue("authenticator");
 				if (authenticator == null) {
@@ -293,7 +298,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			cr.getParameters().add("activationKey", form.getFirstValue("identifier"));
 			cr.getParameters().add("remember", form.getFirstValue("remember"));
 		} else if (action == Action.IMPERSONATE) {
-			cr = parse(request.getCookies().getFirst(cookieName).getValue());
+			cr = parse(request.getCookies().getFirst(cookieName).getValue(), true);
 			cr.getParameters().add("authenticator", cr.getIdentifier());
 			cr.setIdentifier(form.getFirstValue("impersonate"));
 			request.setChallengeResponse(cr);
