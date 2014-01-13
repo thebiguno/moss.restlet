@@ -5,7 +5,7 @@
 <project name="Moss Restlet" default="jar" basedir=".">
 
 	<!-- Set up all the project specific properties -->
-	<property name="PROJECT_NAME" value="Moss Restley Functions"/>
+	<property name="PROJECT_NAME" value="Moss Restlet Functions"/>
 	<property name="PROJECT_SHORT_NAME" value="moss-restlet"/>
 	<property name="PROJECT_DESCRIPTION" value="Restlet support"/>
 	<property name="PROJECT_COPYRIGHT" value="Copyright Wyatt Olson and Warren Janssens"/>
