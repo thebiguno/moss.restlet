@@ -143,28 +143,30 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	@Override
 	protected int authenticated(Request request, Response response) {
 		final ChallengeResponse cr = request.getChallengeResponse();
-		if (cr == null) return CONTINUE;
-
-		final String value = format(cr);
-		if (value == null || value.equals(cr.getRawValue())) return CONTINUE;
-		
-		try {
-			final CookieSetting credentialsCookie = getCredentialsCookie(request, response);
-			credentialsCookie.setValue(new Crypto().encrypt(key, value));
-			if (isAllowRemember()) {
-				boolean remember = false;
-				try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Exception e) {}
-				credentialsCookie.setMaxAge(remember ? Integer.MAX_VALUE : -1);
-			} else {
-				credentialsCookie.setMaxAge(maxCookieAge);
+		if (cr != null){
+			final String value = format(cr);
+			if (value != null && !value.equals(cr.getRawValue())){
+				//Set the cookie if it is not already set
+				try {
+					final CookieSetting credentialsCookie = getCredentialsCookie(request, response);
+					credentialsCookie.setValue(new Crypto().encrypt(key, value));
+					if (isAllowRemember()) {
+						boolean remember = false;
+						try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Exception e) {}
+						credentialsCookie.setMaxAge(remember ? Integer.MAX_VALUE : -1);
+					} else {
+						credentialsCookie.setMaxAge(maxCookieAge);
+					}
+					credentialsCookie.setSecure(secure);
+					credentialsCookie.setAccessRestricted(true);
+				} catch (CryptoException e) {
+					getLogger().log(Level.WARNING, "Unable to set cookie", e);
+					return STOP;
+				}
 			}
-			credentialsCookie.setSecure(secure);
-			credentialsCookie.setAccessRestricted(true);
-			return super.authenticated(request, response);
-		} catch (CryptoException e) {
-			getLogger().log(Level.WARNING, "Unable to set cookie", e);
-			return STOP;
 		}
+		
+		return super.authenticated(request, response);
 	}
 
 	public ChallengeResponse parse(String encrypted, boolean checkExpiry) {
