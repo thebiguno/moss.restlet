@@ -31,6 +31,8 @@ Ext.define("Login.view.PasswordField", {
 						"flex": 1,
 						"validator": function(value){
 							var passwordField = this.up("passwordfield");
+							if (passwordField == null) return;
+							
 							var confirmField = passwordField.down("textfield[itemId=confirm]");
 							var confirmPassword = confirmField.getValue();
 							if (value.length == 0 && confirmPassword.length == 0 && !passwordField.required) return true;
