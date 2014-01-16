@@ -28,15 +28,33 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	private final String cookieName;
 	private final String interceptPath;
 	private final Key key;
+	private final Crypto crypto;
 	private volatile int delay = 1500;
 	private volatile int maxCookieAge = -1;
 	private volatile int maxExpiryAge = Integer.MAX_VALUE;
 	private volatile boolean secure = false;
 	private volatile boolean allowRemember = true;
 
+	/**
+	 * Use defaults where possible: cookie name = '_auth', intercept path is '/index', crypto uses AES 256
+	 * @param context
+	 * @param optional
+	 * @param key
+	 */
 	public CookieAuthenticator(Context context, boolean optional, Key key) {
-		this(context, optional, key, "_auth", "/index");
+		this(context, optional, new Crypto(), key);
 	}
+	
+	/**
+	 * Use defaults where possible: cookie name = '_auth', intercept path is '/index'
+	 * @param context
+	 * @param optional
+	 * @param key
+	 */
+	public CookieAuthenticator(Context context, boolean optional, Crypto crypto, Key key) {
+		this(context, optional, crypto, key, "_auth", "/index");
+	}
+	
 	/**
 	 * <p>This authenticator supports the following features:</p>
 	 * <ul><li>XHR-based interface to a single end-point for all authentication operations</li>
@@ -81,8 +99,9 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	 * <p>If a verifier accepts alternate identifiers such as email address for login it MUST change the identifier in the challenge response to the canonical identifier.</p>
 	 * <p>The verifier MUST replace the identifier from activation key to the canonical identifier during activation.</p>
 	 */
-	public CookieAuthenticator(Context context, boolean optional, Key key, String cookieName, String interceptPath) {
+	public CookieAuthenticator(Context context, boolean optional, Crypto crypto, Key key, String cookieName, String interceptPath) {
 		super(context, optional, ChallengeScheme.HTTP_COOKIE, null);
+		this.crypto = crypto;
 		this.key = key;
 		this.cookieName = cookieName;
 		this.interceptPath = interceptPath;
@@ -149,7 +168,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 				//Set the cookie if it is not already set
 				try {
 					final CookieSetting credentialsCookie = getCredentialsCookie(request, response);
-					credentialsCookie.setValue(new Crypto().encrypt(key, value));
+					credentialsCookie.setValue(crypto.encrypt(key, value));
 					if (isAllowRemember()) {
 						boolean remember = false;
 						try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Exception e) {}
