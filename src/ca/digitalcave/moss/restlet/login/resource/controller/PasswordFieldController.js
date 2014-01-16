@@ -16,7 +16,7 @@ Ext.define("Login.controller.PasswordFieldController", {
 		field.connection.request({
 			"url": "${routerAttachPoint}/checkpassword",
 			"params": {
-				"identifier": field.up("passwordfield").identifier ? field.up("passwordfield").identifier : field.up("form").down("component[name=identifier]").getValue(),
+				"identifier": field.up("passwordfield").identifier ? field.up("passwordfield").identifier : field.up("form").down("component[name=identifier]") ? field.up("form").down("component[name=identifier]").getValue() : "anonymous",
 				"secret": field.getValue()
 			},
 			"success": function(response){
@@ -41,17 +41,20 @@ Ext.define("Login.controller.PasswordFieldController", {
 				else if (strength < 100) color = "#4aa94a";
 				else { color = "#26a826"; strength = 100; }
 				
-				var draw = field.up("passwordfield").down("draw[itemId=passwordbar]");
-				var surface = draw.surface;
-				var sprite = surface.items.get(0);
-				sprite.stopAnimation();
-				sprite.animate({
-					"to": {
-						"width": strength * draw.getWidth() / 100,
-						"fill": color
-					},
-					"duration": 500
-				});
+				var passwordField = field.up("passwordfield");
+				if (passwordField != null){
+					var draw = passwordField.down("draw[itemId=passwordbar]");
+					var surface = draw.surface;
+					var sprite = surface.items.get(0);
+					sprite.stopAnimation();
+					sprite.animate({
+						"to": {
+							"width": strength * draw.getWidth() / 100,
+							"fill": color
+						},
+						"duration": 500
+					});
+				}
 				
 				field.validate();
 			}

@@ -283,15 +283,15 @@ public class Packer {
 			}
 		} else if (args.length == 3 && args[0].equals("-make")) {
 			Packer p = new Packer(args[1],"rw");
+			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(args[2])));
 			try {
-				BufferedReader br = new BufferedReader(new InputStreamReader
-						(new FileInputStream(args[2])));
 				String s = null;
 				while ((s = br.readLine()) != null) {
 					System.out.println("Putting : "+s);
 					p.put(s);
 				}
 			} finally {
+				br.close();
 				p.close();
 			}
 		} else if (args.length == 3 && args[0].equals("-find")) {

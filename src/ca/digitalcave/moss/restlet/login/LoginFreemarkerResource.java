@@ -18,6 +18,7 @@ import org.restlet.representation.Variant;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.ServerResource;
 
+import ca.digitalcave.moss.restlet.util.LocaleUtil;
 import freemarker.cache.ClassTemplateLoader;
 import freemarker.ext.beans.BeansWrapper;
 import freemarker.template.Configuration;
@@ -42,8 +43,9 @@ public class LoginFreemarkerResource extends ServerResource {
 				configuration.routerAttachPoint = getReference().toString().replace(getRootRef().toString(), "").replace(getReference().getRemainingPart(), "").replaceFirst("^/", "");
 			}
 			final LoginRouterConfiguration dataModel = configuration.clone();
-			dataModel.translation = ResourceBundle.getBundle(configuration.i18nBase);
-			if (configuration.i18nBaseCustom != null) dataModel.customTranslation = ResourceBundle.getBundle(configuration.i18nBaseCustom);
+			final Locale locale = LocaleUtil.parseLocales(getRequest().getClientInfo().getAcceptedLanguages());
+			dataModel.translation = ResourceBundle.getBundle(configuration.i18nBase, locale);
+			if (configuration.i18nBaseCustom != null) dataModel.customTranslation = ResourceBundle.getBundle(configuration.i18nBaseCustom, locale);
 			final TemplateRepresentation entity = new TemplateRepresentation(path, getFreemarkerConfig(), dataModel, variant.getMediaType());
 			if (entity.getTemplate() == null) throw new ResourceException(Status.CLIENT_ERROR_NOT_FOUND);
 			entity.setModificationDate(new Date());
