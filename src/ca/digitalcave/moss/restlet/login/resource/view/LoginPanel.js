@@ -18,7 +18,6 @@ Ext.define('Login.view.LoginPanel', {
 			"xtype": "form",
 			"border": false, 
 			"margin": 10, 
-			"autoScroll": true, 
 			"defaults": { 
 				"xtype": "textfield", 
 				"anchor": "100%", 
