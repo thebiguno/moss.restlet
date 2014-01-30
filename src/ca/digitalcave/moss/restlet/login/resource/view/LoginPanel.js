@@ -29,7 +29,7 @@ Ext.define('Login.view.LoginPanel', {
 	"items": [
 <#if showLogin!true>
 		{
-			"title": "${translation(loginTitleKey!"LOGIN_TITLE")?json_string}",
+			"title": "${loginTitle!translation(loginTitleKey!"LOGIN_TITLE")?json_string}",
 			"items": [
 				{
 					"itemId": "authenticate",

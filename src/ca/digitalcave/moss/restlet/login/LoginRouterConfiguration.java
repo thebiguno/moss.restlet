@@ -87,6 +87,7 @@ public class LoginRouterConfiguration implements Cloneable {
 	public String loginFormId;
 	public String loginLabel;
 	public String loginLabelKey;
+	public String loginTitle;
 	public String loginTitleKey;
 	public String newPasswordLabel;
 	public String newPasswordLabelKey;
@@ -145,6 +146,7 @@ public class LoginRouterConfiguration implements Cloneable {
 		result.loginFormId = this.loginFormId;
 		result.loginLabel = this.loginLabel;
 		result.loginLabelKey = this.loginLabelKey;
+		result.loginTitle = this.loginTitle;
 		result.loginTitleKey = this.loginTitleKey;
 		result.newPasswordLabel = this.newPasswordLabel;
 		result.newPasswordLabelKey = this.newPasswordLabelKey;
@@ -327,6 +329,10 @@ public class LoginRouterConfiguration implements Cloneable {
 		return loginLabelKey;
 	}
 
+	public String getLoginTitle() {
+		return loginTitle;
+	}
+	
 	public String getLoginTitleKey() {
 		return loginTitleKey;
 	}
