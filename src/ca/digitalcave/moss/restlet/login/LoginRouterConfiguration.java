@@ -100,7 +100,12 @@ public class LoginRouterConfiguration implements Cloneable {
 	public String routerAttachPoint;
 	public String unknownErrorMessage;
 	public String unknownErrorMessageKey;
-
+	/**
+	 * Other login form configuration values
+	 */
+	public String tabPosition;
+	public String tabPackAlignment;
+	public boolean tabBarBackgroundInvisible;
 	
 	//Not included in clone; set automatically in LoginFreemarkerResource, loaded from i18nBase.
 	public ResourceBundle translation;
@@ -157,6 +162,10 @@ public class LoginRouterConfiguration implements Cloneable {
 		result.resetTitle = this.resetTitle;
 		result.resetTitleKey = this.resetTitleKey;
 		result.routerAttachPoint = this.routerAttachPoint;
+		
+		result.tabPosition = this.tabPosition;
+		result.tabPackAlignment = this.tabPackAlignment;
+		result.tabBarBackgroundInvisible = this.tabBarBackgroundInvisible;
 		
 		return result;
 	}
@@ -381,4 +390,13 @@ public class LoginRouterConfiguration implements Cloneable {
 		return unknownErrorMessageKey;
 	}
 	
+	public String getTabPackAlignment() {
+		return tabPackAlignment;
+	}
+	public String getTabPosition() {
+		return tabPosition;
+	}
+	public boolean isTabBarBackgroundInvisible() {
+		return tabBarBackgroundInvisible;
+	}
 }

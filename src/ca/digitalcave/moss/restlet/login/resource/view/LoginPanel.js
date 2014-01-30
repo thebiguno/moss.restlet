@@ -9,8 +9,20 @@ Ext.define('Login.view.LoginPanel', {
 
 	"title": "${formTitle!translation(formTitleKey!"FORM_TITLE")?json_string}",
 	"renderTo": "${loginFormId!"loginform"}",
-	"tabPosition": "bottom",
+	"tabPosition": "${tabPosition!"bottom"?json_string}",
 	"height": "100%",
+	"tabBar": {
+		<#if tabBarBackgroundInvisible!false>
+		"style": {
+			"background-image": "none",
+			"background-color": "transparent",
+			"border": "none"
+		},
+		</#if>
+		"layout": {
+			"pack": "${tabPackAlignment!"start"?json_string}"
+		}
+	},
 	"defaults": {
 		"xtype": "panel",
 		"layout": "card", 
