@@ -212,7 +212,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			}
 			return result;
 		} catch (Exception e) {
-			getLogger().log(Level.INFO, "Unable to decrypt cookie credentials", e);
+			//getLogger().log(Level.INFO, "Unable to decrypt cookie credentials", e);
 			return null;
 		}
 	}
