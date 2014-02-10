@@ -14,6 +14,10 @@ Ext.define("Login.view.PasswordField", {
 		return this.down("textfield[itemId='password']").isValid() && this.down("textfield[itemId='confirm']").isValid();
 	},
 	
+	"getErrors": function(){
+		return this.errors;
+	},
+	
 	"required": true,
 	
 	"initComponent": function(){
@@ -38,8 +42,15 @@ Ext.define("Login.view.PasswordField", {
 							if (value.length == 0 && confirmPassword.length == 0 && !passwordField.required) return true;
 						
 							confirmField.validate();	//Validate that passwords match
-							if (this.lastCheck == null) return "${passwordUnvalidated!translation("PASSWORD_UNVALIDATED")?json_string}";
-							else if (this.lastCheck.passed) return true;
+							if (this.lastCheck == null) {
+								
+								this.errors = "${passwordUnvalidated!translation("PASSWORD_UNVALIDATED")?json_string}";
+								return this.errors;
+							}
+							else if (this.lastCheck.passed) {
+								this.errors = null;
+								return true;
+							}
 							
 							var result = "<b>Problems</b>:<br/>";
 							if (this.lastCheck.length === false) result += "${passwordLength!translation("PASSWORD_LENGTH")?json_string}<br/>";
@@ -50,6 +61,7 @@ Ext.define("Login.view.PasswordField", {
 							if (this.lastCheck.dictionary === false) result += "${passwordDictionary!translation("PASSWORD_DICTIONARY")?json_string}<br/>";
 							if (this.lastCheck.pattern === false) result += "${passwordPattern!translation("PASSWORD_PATTERN")?json_string}<br/>";
 							if (this.lastCheck.custom === false) result += "${passwordCustom!translation("PASSWORD_CUSTOM")?json_string}<br/>";
+							this.errors = result;
 							return result;
 						},
 						"connection": Ext.create('Ext.data.Connection', {
