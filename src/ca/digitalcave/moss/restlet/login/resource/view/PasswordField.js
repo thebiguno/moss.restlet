@@ -41,14 +41,14 @@ Ext.define("Login.view.PasswordField", {
 							var confirmPassword = confirmField.getValue();
 							if (value.length == 0 && confirmPassword.length == 0 && !passwordField.required) return true;
 						
-							confirmField.validate();	//Validate that passwords match
 							if (this.lastCheck == null) {
-								
-								this.errors = "${passwordUnvalidated!translation("PASSWORD_UNVALIDATED")?json_string}";
-								return this.errors;
+								result = "${passwordUnvalidated!translation("PASSWORD_UNVALIDATED")?json_string}";
+								passwordField.errors = result;
+								return result;
 							}
 							else if (this.lastCheck.passed) {
-								this.errors = null;
+								passwordField.errors = null;
+								confirmField.validate();	//Validate that passwords match; this will set passwordField.errors if they don't match, but it still doesn't affect the validity of *this* field.
 								return true;
 							}
 							
@@ -61,7 +61,7 @@ Ext.define("Login.view.PasswordField", {
 							if (this.lastCheck.dictionary === false) result += "${passwordDictionary!translation("PASSWORD_DICTIONARY")?json_string}<br/>";
 							if (this.lastCheck.pattern === false) result += "${passwordPattern!translation("PASSWORD_PATTERN")?json_string}<br/>";
 							if (this.lastCheck.custom === false) result += "${passwordCustom!translation("PASSWORD_CUSTOM")?json_string}<br/>";
-							this.errors = result;
+							passwordField.errors = result;
 							return result;
 						},
 						"connection": Ext.create('Ext.data.Connection', {
@@ -79,7 +79,9 @@ Ext.define("Login.view.PasswordField", {
 						"validator": function(value){
 							var passwordField = this.up("passwordfield").down("textfield[itemId=password]");
 							if (passwordField.getValue() != value) {
-								return "${passwordConfirmationMatch!translation("PASSWORD_CONFIRMATION_MATCH")?json_string}";
+								var result = "${passwordConfirmationMatch!translation("PASSWORD_CONFIRMATION_MATCH")?json_string}";
+								this.up("passwordfield").errors = result;
+								return result;
 							} else {
 								return true;
 							}
