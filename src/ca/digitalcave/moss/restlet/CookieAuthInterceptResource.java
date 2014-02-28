@@ -63,13 +63,8 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 				success = false;
 			}
 		} else if (isAllowRegister() && action == Action.REGISTER) {
-			final User user = new User();
-			user.setIdentifier(cr.getIdentifier());
-			user.setEmail(cr.getParameters().getFirstValue("email"));
-			user.setFirstName(cr.getParameters().getFirstValue("firstName"));
-			user.setLastName(cr.getParameters().getFirstValue("lastName"));
 			final String activationKey = UUID.randomUUID().toString();
-			final String contactKey = insertUser(user, activationKey);
+			final String contactKey = insertUser(getRegistration(), activationKey);
 			if (contactKey != null) {
 				sendActivationKey(contactKey, activationKey);
 			}
@@ -86,7 +81,6 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 			success = isValidPassword(password);
 			if (success) {
 				updateSecret(cr.getParameters().getFirstValue("activationKey"), getHash(password));
-				// success is always true to prevent user enumeration attacks
 			}
 		}
 
@@ -98,6 +92,16 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 		// Delete should always work; 
 		// the request is intercepted by the CookieAuthenticator, and the login token is deleted.
 		return new StringRepresentation("{success:true}");
+	}
+	
+	protected User getRegistration() {
+		final ChallengeResponse cr = getChallengeResponse();
+		final User user = new User();
+		user.setIdentifier(cr.getIdentifier());
+		user.setEmail(cr.getParameters().getFirstValue("email"));
+		user.setFirstName(cr.getParameters().getFirstValue("firstName"));
+		user.setLastName(cr.getParameters().getFirstValue("lastName"));
+		return user;
 	}
 	
 	/**
