@@ -96,7 +96,7 @@ Ext.define('Login.view.LoginPanel', {
 					"itemId": "activate",
 					"items": [
 						{ "fieldLabel": "${activationKeyLabel!translation(activationKeyLabelKey!"ACTIVATION_KEY_LABEL")?json_string}", "name": "identifier" },
-						{ "fieldLabel": "${newPasswordLabel!translation(newPasswordLabelKey!"NEW_PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
+						{ "fieldLabel": "${newPasswordLabel!translation(newPasswordLabelKey!"PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
 						<#if extraRegisterStep2Fields??><@extraRegisterStep2Fields/></#if>
 						{ "xtype": "animatedlabel", "itemId": "messageRegister2" }
 					],
