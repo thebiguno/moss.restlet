@@ -73,20 +73,17 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 			if (contactKey != null) {
 				sendActivationKey(contactKey, activationKey);
 			}
-			// success is always true to prevent user enumeration attacks
 		} else if (isAllowReset() && action == Action.RESET) {
 			final String activationKey = UUID.randomUUID().toString();
 			final String contactKey = updateActivationKey(cr.getIdentifier(), activationKey);
 			if (contactKey != null) {
 				sendActivationKey(contactKey, activationKey);
 			}
-			// success is always true to prevent user enumeration attacks
 		} else if (action == Action.ACTIVATE) {
 			final String password = new String(cr.getSecret());
 			success = isValidPassword(password);
 			if (success) {
 				updateSecret(cr.getParameters().getFirstValue("activationKey"), getHash(password));
-				// success is always true to prevent user enumeration attacks
 			}
 		}
 
