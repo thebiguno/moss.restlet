@@ -205,7 +205,7 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 	 * @param activationKey
 	 * @return
 	 */
-	protected Representation getEmailRepresentation(final String email, final String activationKey){
+	protected Representation getEmailRepresentation(final String fromEmail, final String toEmail, final String subject, final String activationKey){
 		final SaxRepresentation entity = new SaxRepresentation() {
 			@Override
 			public void write(XmlWriter w) throws IOException {
@@ -213,9 +213,9 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 					w.startDocument();
 					w.startElement("email");
 					w.startElement("head");
-					w.dataElement("subject", getConfig().getProperty("mail.subject", "Account activation"));
-					w.dataElement("from", getConfig().getProperty("mail.smtp.from", "user@localhost"));
-					w.dataElement("to", email);
+					w.dataElement("subject", subject);
+					w.dataElement("from", fromEmail);
+					w.dataElement("to", toEmail);
 					w.endElement("head");
 					w.startElement("body");
 					w.characters("Here is the activation key you requested: ");
@@ -249,13 +249,15 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 	 * @param email
 	 * @param activationKey
 	 */
-	protected void sendActivationKey(final String email, final String activationKey) {
+	protected void sendActivationKey(final String toEmail, final String activationKey) {
 		final Properties config = getConfig();
 		final Runnable emailRunnable = new Runnable() { 
 			public void run() { 
 				final String url = "smtp://" + config.getProperty("mail.smtp.host", "localhost") + ":" + config.getProperty("mail.smtp.port", "25");
 				final Request request = new Request(Method.POST, url);
-				request.setEntity(getEmailRepresentation(email, activationKey));
+				final String subject = config.getProperty("mail.subject", "Account activation");
+				final String fromEmail = config.getProperty("mail.smtp.from", "user@localhost");
+				request.setEntity(getEmailRepresentation(fromEmail, toEmail, subject, activationKey));
 				if ("true".equals(config.getProperty("mail.smtp.auth", "false"))) {
 					final ChallengeResponse cr = new ChallengeResponse(ChallengeScheme.SMTP_PLAIN, config.getProperty("mail.smtp.username"), config.getProperty("mail.smtp.password"));
 					request.setChallengeResponse(cr);
