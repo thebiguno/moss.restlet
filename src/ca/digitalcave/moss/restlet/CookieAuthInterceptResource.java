@@ -250,10 +250,9 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 	 * @param activationKey
 	 */
 	protected void sendActivationKey(final String email, final String activationKey) {
+		final Properties config = getConfig();
 		final Runnable emailRunnable = new Runnable() { 
 			public void run() { 
-				final Properties config = getConfig();
-		
 				final String url = "smtp://" + config.getProperty("mail.smtp.host", "localhost") + ":" + config.getProperty("mail.smtp.port", "25");
 				final Request request = new Request(Method.POST, url);
 				request.setEntity(getEmailRepresentation(email, activationKey));
@@ -263,7 +262,7 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 				}
 				
 				final Client client = new Client(getContext().createChildContext(), Protocol.SMTP);
-				client.getContext().getParameters().set("startTls", getConfig().getProperty("mail.smtp.starttls.enable", "false"));
+				client.getContext().getParameters().set("startTls", config.getProperty("mail.smtp.starttls.enable", "false"));
 				client.handle(request);
 			}
 		};
