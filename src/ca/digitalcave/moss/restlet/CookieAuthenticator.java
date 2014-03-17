@@ -4,6 +4,7 @@ import java.security.Key;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 
@@ -27,7 +28,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	private final static Map<String, Semaphore> loginAttempts = Collections.synchronizedMap(new WeakHashMap<String, Semaphore>());
 	private final String cookieName;
 	private final String interceptPath;
-	private final Key key;
+	private final Callable<Key> key;
 	private final Crypto crypto;
 	private volatile int delay = 1500;
 	private volatile int maxCookieAge = -1;
@@ -41,7 +42,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	 * @param optional
 	 * @param key
 	 */
-	public CookieAuthenticator(Context context, boolean optional, Key key) {
+	public CookieAuthenticator(Context context, boolean optional, Callable<Key> key) {
 		this(context, optional, new Crypto(), key);
 	}
 	
@@ -51,7 +52,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	 * @param optional
 	 * @param key
 	 */
-	public CookieAuthenticator(Context context, boolean optional, Crypto crypto, Key key) {
+	public CookieAuthenticator(Context context, boolean optional, Crypto crypto, Callable<Key> key) {
 		this(context, optional, crypto, key, "_auth", "/index");
 	}
 	
@@ -99,7 +100,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	 * <p>If a verifier accepts alternate identifiers such as email address for login it MUST change the identifier in the challenge response to the canonical identifier.</p>
 	 * <p>The verifier MUST replace the identifier from activation key to the canonical identifier during activation.</p>
 	 */
-	public CookieAuthenticator(Context context, boolean optional, Crypto crypto, Key key, String cookieName, String interceptPath) {
+	public CookieAuthenticator(Context context, boolean optional, Crypto crypto, Callable<Key> key, String cookieName, String interceptPath) {
 		super(context, optional, ChallengeScheme.HTTP_COOKIE, null);
 		this.crypto = crypto;
 		this.key = key;
@@ -168,7 +169,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 				//Set the cookie if it is not already set
 				try {
 					final CookieSetting credentialsCookie = getCredentialsCookie(request, response);
-					credentialsCookie.setValue(crypto.encrypt(key, value));
+					credentialsCookie.setValue(crypto.encrypt(key.call(), value));
 					if (isAllowRemember()) {
 						boolean remember = false;
 						try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Exception e) {}
@@ -181,6 +182,9 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 				} catch (CryptoException e) {
 					getLogger().log(Level.WARNING, "Unable to set cookie", e);
 					return STOP;
+				} catch (Exception e) {
+					getLogger().log(Level.WARNING, "Unable to get key", e);
+					return STOP;
 				}
 			}
 		}
@@ -190,7 +194,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 
 	public ChallengeResponse parse(String encrypted, boolean checkExpiry) {
 		try {
-			final String decrypted = Crypto.decrypt(key, encrypted);
+			final String decrypted = Crypto.decrypt(key.call(), encrypted);
 			final Form p = new Form(decrypted);
 			
 			long expires = Long.parseLong(p.getFirstValue("expires"));
