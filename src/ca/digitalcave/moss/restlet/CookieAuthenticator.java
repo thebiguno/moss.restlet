@@ -132,7 +132,9 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			final Cookie cookie = request.getCookies().getFirst(cookieName);
 			if (cookie != null) {
 				cr = parse(cookie.getValue(), true);
-				request.setChallengeResponse(cr);
+				if (cr != null){
+					request.setChallengeResponse(cr);
+				}
 			}
 			else {
 				cr = null;
