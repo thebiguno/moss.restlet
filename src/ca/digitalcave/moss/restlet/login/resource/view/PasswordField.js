@@ -25,6 +25,7 @@ Ext.define("Login.view.PasswordField", {
 			{
 				"xtype": "container",
 				"layout": "hbox",
+				"margin": "0px -5px",
 				"items": [
 					{
 						"xtype": "textfield",
@@ -90,18 +91,26 @@ Ext.define("Login.view.PasswordField", {
 				]
 			},
 			{
-				"xtype": "draw",
+				"xtype": "container",
+				"layout": "fit",
 				"height": 7,
-				"itemId": "passwordbar",
-				"viewBox": false,
+				"margin": "0px -5px",
 				"items": [
 					{
-						"type": "rect",
-						"width": 0,
-						"height": 5,
-						"fill": "#000",
-						"stroke": "#666",
-						"strokeWidth": 1
+						"xtype": "draw",
+						"height": 7,
+						"itemId": "passwordbar",
+						"viewBox": false,
+						"items": [
+							{
+								"type": "rect",
+								"width": 0,
+								"height": 5,
+								"fill": "#000",
+								"stroke": "#666",
+								"strokeWidth": 1
+							}
+						]
 					}
 				]
 			}
