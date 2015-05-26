@@ -101,7 +101,7 @@ Ext.define("Login.view.PasswordField", {
 						"height": 7,
 						"itemId": "passwordbar",
 						"viewBox": false,
-						"items": [
+						"sprites": [
 							{
 								"type": "rect",
 								"width": 0,

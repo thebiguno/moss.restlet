@@ -44,16 +44,14 @@ Ext.define("Login.controller.PasswordFieldController", {
 				var passwordField = field.up("passwordfield");
 				if (passwordField != null){
 					var draw = passwordField.down("draw[itemId=passwordbar]");
-					var surface = draw.surface;
-					var sprite = surface.items.get(0);
-					sprite.stopAnimation();
-					sprite.animate({
-						"to": {
-							"width": strength * draw.getWidth() / 100,
-							"fill": color
-						},
-						"duration": 500
+					var surface = draw.getSurface();
+					var sprite = surface.getItems()[0];
+					sprite.fx.setDuration(500);
+					sprite.setAttributes({
+						"width": strength * draw.getWidth() / 100,
+						"fill": color
 					});
+					surface.renderFrame();
 				}
 				
 				field.validate();
