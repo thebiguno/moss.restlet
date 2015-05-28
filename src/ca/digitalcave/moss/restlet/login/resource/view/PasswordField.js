@@ -117,5 +117,7 @@ Ext.define("Login.view.PasswordField", {
 		];
 		
 		this.callParent(arguments);
+		
+		this.down('draw').getSurface().isFocusable = function() { return false; };
 	}
 });
