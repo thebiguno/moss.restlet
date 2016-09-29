@@ -13,6 +13,7 @@ import org.restlet.data.CharacterSet;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
 import org.restlet.data.Protocol;
+import org.restlet.data.Status;
 import org.restlet.ext.xml.SaxRepresentation;
 import org.restlet.ext.xml.XmlWriter;
 import org.restlet.representation.Representation;
@@ -76,9 +77,13 @@ public abstract class CookieAuthInterceptResource extends ServerResource {
 			}
 		} else if (action == Action.ACTIVATE) {
 			final String password = new String(cr.getSecret());
-			success = isValidPassword(password);
+			final String activationKey = cr.getParameters().getFirstValue("activationKey");
+			success = isValidPassword(password) && !password.equals(activationKey);
 			if (success) {
-				updateSecret(cr.getParameters().getFirstValue("activationKey"), getHash(password));
+				updateSecret(activationKey, getHash(password));
+			}
+			else {
+				throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST);
 			}
 		}
 
