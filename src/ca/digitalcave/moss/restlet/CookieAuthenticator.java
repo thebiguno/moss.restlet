@@ -175,7 +175,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 					if (isAllowRemember()) {
 						boolean remember = false;
 						try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Exception e) {}
-						credentialsCookie.setMaxAge(remember ? Integer.MAX_VALUE : -1);
+						credentialsCookie.setMaxAge(remember ? Integer.MAX_VALUE : maxCookieAge);
 					} else {
 						credentialsCookie.setMaxAge(maxCookieAge);
 					}
