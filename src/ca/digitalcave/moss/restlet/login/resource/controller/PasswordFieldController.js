@@ -46,7 +46,7 @@ Ext.define("Login.controller.PasswordFieldController", {
 					var draw = passwordField.down("draw[itemId=passwordbar]");
 					var surface = draw.getSurface();
 					var sprite = surface.getItems()[0];
-					sprite.fx.setDuration(500);
+					sprite.setAnimation({duration: 500});
 					sprite.setAttributes({
 						"width": strength * draw.getWidth() / 100,
 						"fill": color

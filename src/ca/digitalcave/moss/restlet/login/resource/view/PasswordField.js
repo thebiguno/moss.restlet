@@ -38,6 +38,8 @@ Ext.define("Login.view.PasswordField", {
 							var passwordField = this.up("passwordfield");
 							if (passwordField == null) return;
 							
+							if (!passwordField.initialConfig.required && !value) return true;
+							
 							var confirmField = passwordField.down("textfield[itemId=confirm]");
 							var confirmPassword = confirmField.getValue();
 							if (value.length == 0 && confirmPassword.length == 0 && !passwordField.required) return true;
