@@ -116,7 +116,7 @@ Ext.define('Login.view.LoginPanel', {
 					"itemId": "reset",
 					"items": [
 						{ "fieldLabel": "${identifierLabel!translation(identifierLabelKey!"IDENTIFIER_LABEL")?json_string}", "name": "identifier" },
-						<#if extraResetStep1Fields??><@extraResetStep1Fields/></#if>
+						<#if extraResetStep1PanelFields??><@extraResetStep1PanelFields/></#if>
 						{ "xtype": "animatedlabel", "itemId": "messageForgotPassword1" }
 					],
 					"buttons": [
@@ -130,7 +130,7 @@ Ext.define('Login.view.LoginPanel', {
 					"items": [
 						{ "fieldLabel": "${activationKeyLabel!translation(activationKeyLabelKey!"ACTIVATION_KEY_LABEL")?json_string}", "name": "identifier" },
 						{ "fieldLabel": "${newPasswordLabel!translation(newPasswordLabelKey!"NEW_PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
-						<#if extraResetStep2Fields??><@extraResetStep2Fields/></#if>
+						<#if extraResetStep2PanelFields??><@extraResetStep2PanelFields/></#if>
 						{ "xtype": "animatedlabel", "itemId": "messageForgotPassword2" }
 					],
 					"buttons": [
