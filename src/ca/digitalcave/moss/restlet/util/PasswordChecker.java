@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 import org.solinger.cracklib.CrackLib;
 import org.solinger.cracklib.Packer;
 
-import ca.digitalcave.moss.crypto.MossHash;
+import ca.digitalcave.moss.crypto.DefaultHash;
 
 public class PasswordChecker {
 	private String patternsPath;
@@ -173,7 +173,12 @@ public class PasswordChecker {
 	 * This method should be implemented in a subclass if history checking is required. 
 	 */
 	protected boolean verifyHash(String hash, String password) {
-		return MossHash.verify(hash, password);
+		try {
+			return DefaultHash.verify(hash, password);
+		}
+		catch (Throwable e){
+			return false;	//Old hashing schemes cause this to break.  Catch errors and assume that the errors do not match.
+		}
 	}
 
 	/**

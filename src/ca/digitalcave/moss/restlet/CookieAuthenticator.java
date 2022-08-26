@@ -1,13 +1,15 @@
 package ca.digitalcave.moss.restlet;
 
-import java.security.Key;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import org.apache.commons.lang3.StringUtils;
 import org.restlet.Context;
 import org.restlet.Request;
 import org.restlet.Response;
@@ -16,96 +18,80 @@ import org.restlet.data.ChallengeScheme;
 import org.restlet.data.Cookie;
 import org.restlet.data.CookieSetting;
 import org.restlet.data.Form;
-import org.restlet.data.Method;
 import org.restlet.data.Status;
 import org.restlet.security.ChallengeAuthenticator;
+import org.restlet.security.Verifier;
+import org.restlet.util.NamedValue;
 
 import ca.digitalcave.moss.crypto.Crypto;
-import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
 
+/**
+ * The CookieAuthenticator is the core of this plugin.  It reads auth cookies sent with the request, and if they are valid, populates the 
+ * ChallengeResponse object which will later be verified.
+ */
 public class CookieAuthenticator extends ChallengeAuthenticator {
 
+	//These are field names.  They are used for reading POSTed forms (i.e. login credentials) as well as for ChallengeResponse parameter keys.
+	public static final String FIELD_IDENTIFIER = "identifier";								//The user who we assume is logged in.  If impersonating, this will be the impersonated user.
+	public static final String FIELD_AUTHENTICATOR = "authenticator";						//The user who has authenticated.  If impersonating, this will be the admin user; if not impersonating, it will be the same as the identifier.
+	public static final String FIELD_IMPERSONATE = "impersonate";							//The user who is being impersonated.  This needs to be set in the form POST for the initial request, and will be added to the ChallengeResponse properties for convenience.
+	public static final String FIELD_PASSWORD = "password";									//The password of the authenticator
+	public static final String FIELD_REMEMBER = "remember";
+	public static final String FIELD_EMAIL = "email";										//The email address.  Used for 'Forgot username' request.
+	public static final String FIELD_ACTIVATION_KEY = "activationKey";						//The activation key.  Used for 'Reset Password' request.
+	public static final String FIELD_TIME_ISSUED = "timeIssued";
+	public static final String FIELD_COOKIE_EXPIRY_MILLIS = "cookieExpires";
+	public static final String FIELD_PASSWORD_EXPIRED = "passwordExpired";
+	public static final String FIELD_CLIENT_ADDRESS = "clientAddress";
+	
+	public static final String FIELD_SSO_USERNAME = "ssoUsername";						//The username which was used to log in with SAML.
+	public static final String FIELD_SSO_PROVIDER_ID = "ssoProviderId";					//The SAML provider ID, generally a UUID.
+	public static final String FIELD_SSO_PROVIDER_DESCRIPTION = "ssoProviderDescription";	//The SAML provider description, as a human readable string (e.g. 'Office 365')
+	public static final String FIELD_SSO_SESSION_INDEX = "ssoSessionIndex";				//The SAML session index, provided by the IdP at login time
+	
+	public static final String FIELD_SSO_AUTHENTICATED = "ssoAuthenticated";				//Has SSO authentication succeeded?  This is stored in the cookie; every request must also be validated.
+	public static final String FIELD_SSO_SESSION_VALID = "ssoSessionValid";					//The SSO session index MUST be verified for each request in the helper's authenticate method.
+	
+	public static final String FIELD_TOTP_TOKEN = "totpToken";								//The TOTP token submitted by the user
+	public static final String FIELD_TOTP_SHARED_SECRET = "totpSharedSecret";				//The TOTP shared secret.  Used for sending the secret to the user at TOTP setup time
+	public static final String FIELD_TOTP_SHARED_SECRET_QR = "totpSharedSecretQr";			//The TOTP shared secret in QR code format.  Used for sending the secret to the user at TOTP setup time
+	
+	public static final String FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER = "twoFactorIdentifier";	//The user who has validated two factor.  Normally this will be the same as the logged in user, but if may be the authenticator if impersonating.
+	public static final String FIELD_TWO_FACTOR_VALIDATED = "twoFactorValidated";			//The user has used two factor auth when logging in.  This may be TOTP (for password logins), or the SSO may have prompted for two factor.
+	
+	public static final String FIELD_TWO_FACTOR_REQUIRED = "twoFactorRequired";				//Is Two Factor auth needed for this user?  This is not persisted in the cookie, but is set in CookieVerifier every request.
+	public static final String FIELD_TWO_FACTOR_PROMPT = "twoFactorPrompt";					//Should we prompt for Two Factor auth for this user?  This is not persisted in the cookie, but is set in CookieVerifier every request.
+	public static final String FIELD_TWO_FACTOR_SETUP = "twoFactorSetup";					//Is Two Factor auth setup for this user?  This is not persisted in the cookie, but is set in CookieVerifier every request.
+	
+	
+	//These are the keys for storing objects in the request attributes
+	public static final String ATTRIBUTE_AUTHENTICATION_HELPER = "authenticationHelper";
+	
+	private final static Map<String, Long> loggedInUsers = Collections.synchronizedMap(new HashMap<String, Long>());
+	
 	private final static Map<String, Semaphore> loginAttempts = Collections.synchronizedMap(new WeakHashMap<String, Semaphore>());
-	private final String cookieName;
-	private final String interceptPath;
-	private final Callable<Key> key;
-	private final Crypto crypto;
+
+	private final AuthenticationHelper authenticationHelper;
+	
 	private volatile int delay = 1500;
-	private volatile int maxCookieAge = -1;
-	private volatile int maxExpiryAge = Integer.MAX_VALUE;
-	private volatile boolean secure = false;
-	private volatile boolean allowRemember = true;
+	private volatile boolean secure = true;
 
 	/**
-	 * Use defaults where possible: cookie name = '_auth', intercept path is '/index', crypto uses AES 256
-	 * @param context
-	 * @param optional
-	 * @param key
+	 * This authenticator will read an encrypted cookie and (if the decryption works) validate the username / password.
+//	 * <p>If a verifier accepts alternate identifiers such as email address for login it MUST change the identifier in the challenge response to the canonical identifier.</p>
+//	 * <p>The verifier MUST replace the identifier from activation key to the canonical identifier during activation.</p>
 	 */
-	public CookieAuthenticator(Context context, boolean optional, Callable<Key> key) {
-		this(context, optional, new Crypto(), key);
+	public CookieAuthenticator(Context context, boolean optional, AuthenticationHelper authenticationHelper, Verifier verifier) {
+		super(context, optional, ChallengeScheme.HTTP_COOKIE, null, verifier);
+		this.authenticationHelper = authenticationHelper;
 	}
 	
 	/**
-	 * Use defaults where possible: cookie name = '_auth', intercept path is '/index'
-	 * @param context
-	 * @param optional
-	 * @param key
+	 * Helper method to get the authentication helper from the request attributes.
 	 */
-	public CookieAuthenticator(Context context, boolean optional, Crypto crypto, Callable<Key> key) {
-		this(context, optional, crypto, key, "_auth", "/index");
-	}
-	
-	/**
-	 * <p>This authenticator supports the following features:</p>
-	 * <ul><li>XHR-based interface to a single end-point for all authentication operations</li>
-	 *     <li>Redirects are not used since they result in mixed content warnings when using Apache mod_proxy and HTTPS</li>
-	 *     <li>Both authentication identity and authorization identity (i.e. impersonation of another user)</li>
-	 *     <li>Automatic login after enrollment and both forced and elective password reset</li>
-	 *     <li>Time limited authentication window that moves with each valid request (defaults to max integer which is 68 years)</li>
-	 *     <li>Automatic delay after invalid authentication (defaults to 1500 ms)</li>
-	 *     <li>Does not permit user enumeration attacks for account creation and password reset requests</li>
-	 *     <li>Can be combined with other authenticators</li></ul>
-	 * <p>Uses following additional parameters in the challenge response:</p>
-	 * <dl><dt>action</dt><dd>one of login, logout, impersonate, register, reset, activate</dd>
-	 *     <dt>expires</dt><dd>the date/time after which the token will no longer be honored</dd>
-	 *     <dt>remember</dt><dd>indicates that the user wishes to retain the cookie</dd>
-	 *     <dt>authenticator</dt><dd>the authentication identity whose password will be verified</dd>
-	 *     <dt>email</dt><dd>the email address of the user requesting a new account or requesting a password reset</dd>
-	 *     <dt>firstName</dt><dd>the first name of the user requesting a new account</dd>
-	 *     <dt>lastName</dt><dd>the last name of the user requesting a new account</dd>
-	 * <p>The following information is written into the cookie:</p>
-	 * <ul><li>Authenticator Identifier</li>
-	 *     <li>Authenticator Secret</li>
-	 *     <li>Authorizer Identifier</li>
-	 *     <li>Issue Date/Time</li>
-	 *     <li>Expire Date/Time</li></ul>
-	 * <p>The following basic work-flows are supported:</p>
-	 * <ul><li>Logged Out > Login [ > Activation ] > Logged In</li>
-	 *     <li>Logged Out > Register > Activation > Logged In</li>
-	 *     <li>Logged Out > Reset > Activation > Logged In</li>
-	 *     <li>Logged In > Impersonate > Logged In</li>
-	 *     <li>Logged In > Logout > Logged Out</li></ul>
-	 * <p>The following form posts are understood by this authenticator.</p>
-	 * 
-	 * <ul>
-	 *     <li>POST identifier=identifier, secret=secret [, action=login][, impersonate=identifier]</li>
-	 *     <li>POST action=logout</li>
-	 *     <li>DELETE</li>
-	 *     <li>POST action=reset, identifier=identifier</li>
-	 *     <li>POST action=register, identifier=identifier, email=email [, firstName=first_name] [, lastName=last_name]</li>
-	 *     <li>POST action=impersonate, identifier=identifier</li>
-	 *     <li>POST action=activate, identifier=activationKey and secret=newPassword</li>
-	 * </ul>
-	 * <p>If a verifier accepts alternate identifiers such as email address for login it MUST change the identifier in the challenge response to the canonical identifier.</p>
-	 * <p>The verifier MUST replace the identifier from activation key to the canonical identifier during activation.</p>
-	 */
-	public CookieAuthenticator(Context context, boolean optional, Crypto crypto, Callable<Key> key, String cookieName, String interceptPath) {
-		super(context, optional, ChallengeScheme.HTTP_COOKIE, null);
-		this.crypto = crypto;
-		this.key = key;
-		this.cookieName = cookieName;
-		this.interceptPath = interceptPath;
+	public static AuthenticationHelper getAuthenticationHelper(Request request){
+		return ((AuthenticationHelper) request.getAttributes().get(CookieAuthenticator.ATTRIBUTE_AUTHENTICATION_HELPER));
 	}
 	
 	@Override
@@ -119,31 +105,20 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	
 	@Override
 	protected boolean authenticate(Request request, Response response) {
-		final boolean intercepting = isIntercepting(request, response);
-		final boolean result;
-		final boolean authenticated;
-		final ChallengeResponse cr;
-		if (intercepting) {
-			intercept(request, response);
-			cr = request.getChallengeResponse();
-			authenticated = super.authenticate(request, response);
-			result = true;	//You always want to return to the index, even if credentials are bad.
-		} else {
-			final Cookie cookie = request.getCookies().getFirst(cookieName);
-			if (cookie != null) {
-				cr = parse(cookie.getValue(), true);
-				if (cr != null){
-					request.setChallengeResponse(cr);
-				}
-			}
-			else {
-				cr = null;
-			}
-			authenticated = super.authenticate(request, response);
-			result = authenticated;
+		final Cookie cookie = request.getCookies().getFirst(authenticationHelper.getCookieName());
+		final ChallengeResponse cr = getChallengeResponseFromEncryptedCookie(cookie, request, authenticationHelper);
+		if (cr != null){
+			request.setChallengeResponse(cr);
+		}
+
+		final boolean authenticated = super.authenticate(request, response);
+		
+		if (!authenticated && cookie != null && !CookieAuthenticator.isPasswordExpired(cr)){	//We don't want to discard the cookie if the password is expired; we need the cookie to change the password.
+			//If the cookie was set, but not valid, delete it.
+			CookieAuthenticator.setCookie(authenticationHelper, request, response, "", 0);
 		}
 		
-		if (!authenticated && (!isOptional() || intercepting) && delay > 0 && cr != null) {
+		if (!authenticated && !isOptional() && delay > 0 && cr != null) {
 			// delay to reduce the effectiveness of brute force attacks
 			final String identifier = cr.getIdentifier();
 			
@@ -155,228 +130,217 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 				semaphore.acquire();
 				Thread.sleep(delay);
 				semaphore.release();
-			} catch (InterruptedException e) {
+			}
+			catch (InterruptedException e) {
 				;
 			}
 		}
-		return result;
+		
+		if (authenticated){
+			final String clientInfoIdentifier = request.getClientInfo() != null && request.getClientInfo().getUser() != null ? request.getClientInfo().getUser().getIdentifier() : null;
+			final String challengeResponseIdentifier = cr != null ? cr.getIdentifier() : null;
+			if (clientInfoIdentifier != null){
+				loggedInUsers.put(clientInfoIdentifier, System.currentTimeMillis());
+			}
+			else {
+				loggedInUsers.put(challengeResponseIdentifier, System.currentTimeMillis());
+			}
+		}
+		
+		return authenticated;
 	}
 
 	@Override
 	protected int authenticated(Request request, Response response) {
 		final ChallengeResponse cr = request.getChallengeResponse();
-		if (cr != null){
-			final String value = format(cr);
-			if (value != null && !value.equals(cr.getRawValue())){
-				//Set the cookie if it is not already set
-				try {
-					final CookieSetting credentialsCookie = getCredentialsCookie(request, response);
-					credentialsCookie.setValue(crypto.encrypt(key.call(), value));
-					if (isAllowRemember()) {
-						boolean remember = false;
-						try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Exception e) {}
-						credentialsCookie.setMaxAge(remember ? Integer.MAX_VALUE : maxCookieAge);
-					} else {
-						credentialsCookie.setMaxAge(maxCookieAge);
-					}
-					credentialsCookie.setSecure(secure);
-					credentialsCookie.setAccessRestricted(true);
-				} catch (CryptoException e) {
-					getLogger().log(Level.WARNING, "Unable to set cookie", e);
-					return STOP;
-				} catch (Exception e) {
-					getLogger().log(Level.WARNING, "Unable to get key", e);
-					return STOP;
-				}
+		if (cr != null && cr.getScheme().equals(ChallengeScheme.HTTP_COOKIE)){
+			final long expireTime = Long.parseLong(cr.getParameters().getFirstValue(FIELD_COOKIE_EXPIRY_MILLIS));
+			if (StringUtils.isBlank(cr.getParameters().getFirstValue(FIELD_CLIENT_ADDRESS))							//If the client address is blank...
+					|| (cr.getTimeIssued() < System.currentTimeMillis() - 300000)									// ... or the cookie has been issued more than 5 minutes ago...
+					|| (expireTime - 300000 < System.currentTimeMillis())){											// ... or if the cookie will expire in the next 5 minutes ...
+				setEncryptedCookieFromChallengeResponse(request, response, authenticationHelper);					// ... we refresh the cookie
 			}
 		}
 		
 		return super.authenticated(request, response);
 	}
-
-	public ChallengeResponse parse(String encrypted, boolean checkExpiry) {
+	
+	public static Collection<String> getLoggedInUsers(){
 		try {
-			final String decrypted = Crypto.decrypt(key.call(), encrypted);
+			for (String identifier : loggedInUsers.keySet()) {
+				if (loggedInUsers.get(identifier) < (System.currentTimeMillis() - (1000 * 60 * 7))){	//If the user made a request in the past 7 minutes we assume they are still logged in.
+					loggedInUsers.remove(identifier);
+				}
+			}
+		}
+		catch (Throwable e){
+			Logger.getLogger(CookieAuthenticator.class.getName()).log(Level.INFO, "Exception thrown when cleaning logged in users.  Proceeding.");
+		}
+		
+		return Collections.unmodifiableCollection(loggedInUsers.keySet());
+	}
+	
+	/**
+	 * Given the supplied encrypted cookie value and key, return a ChallengeResponse object with all the required parameters populated.
+	 */
+	public static ChallengeResponse getChallengeResponseFromEncryptedCookie(Cookie cookie, Request request, AuthenticationHelper authenticationHelper) {
+		if (cookie == null){
+			return null;
+		}
+		
+		final String encrypted = cookie.getValue();
+		try {
+			final String decrypted = Crypto.decrypt(authenticationHelper.getKey(), encrypted);
+			
 			final Form p = new Form(decrypted);
 			
-			long expires = Long.parseLong(p.getFirstValue("expires"));
-			if (checkExpiry && expires < System.currentTimeMillis()) {
+			long expires = Long.parseLong(p.getFirstValue(FIELD_COOKIE_EXPIRY_MILLIS));
+			if (expires < System.currentTimeMillis()) {
+				return null;
+			}
+			
+			final String clientAddress = p.getFirstValue(FIELD_CLIENT_ADDRESS, "");
+			if (StringUtils.isNotBlank(clientAddress) && !StringUtils.equals(clientAddress, getClientAddress(request))){
 				return null;
 			}
 
-			final ChallengeResponse result = new ChallengeResponse(getScheme());
+			final ChallengeResponse result = new ChallengeResponse(ChallengeScheme.HTTP_COOKIE);
 			result.setRawValue(decrypted);
-			result.setTimeIssued(Long.parseLong(p.getFirstValue("issued")));
-			result.setIdentifier(p.getFirstValue("identifier"));
-			result.setSecret(p.getFirstValue("secret"));
-			result.getParameters().set("expires", Long.toString(expires));
-			if (p.getFirstValue("authenticator") != null) {
-				result.getParameters().set("authenticator", p.getFirstValue("authenticator"));
+			result.setTimeIssued(Long.parseLong(p.getFirstValue(FIELD_TIME_ISSUED)));
+			result.getParameters().set(FIELD_COOKIE_EXPIRY_MILLIS, Long.toString(expires));
+			
+			result.setIdentifier(p.getFirstValue(FIELD_IDENTIFIER));
+			result.setSecret(p.getFirstValue(FIELD_PASSWORD));
+			
+			result.getParameters().set(FIELD_SSO_AUTHENTICATED, p.getFirstValue(FIELD_SSO_AUTHENTICATED));
+			result.getParameters().set(FIELD_SSO_USERNAME, p.getFirstValue(FIELD_SSO_USERNAME));
+			result.getParameters().set(FIELD_SSO_SESSION_INDEX, p.getFirstValue(FIELD_SSO_SESSION_INDEX));
+			result.getParameters().set(FIELD_SSO_PROVIDER_ID, p.getFirstValue(FIELD_SSO_PROVIDER_ID));
+			result.getParameters().set(FIELD_SSO_PROVIDER_DESCRIPTION, p.getFirstValue(FIELD_SSO_PROVIDER_DESCRIPTION));
+			
+			if (p.getFirstValue(FIELD_AUTHENTICATOR) != null) {
+				result.getParameters().set(FIELD_AUTHENTICATOR, p.getFirstValue(FIELD_AUTHENTICATOR));
 			}
-			if (isAllowRemember()) {
-				result.getParameters().set("remember", p.getFirstValue("remember"));
-			}
+			result.getParameters().set(FIELD_REMEMBER, p.getFirstValue(FIELD_REMEMBER, "false"));
+			result.getParameters().set(FIELD_CLIENT_ADDRESS, clientAddress);
+			
+			result.getParameters().set(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER, p.getFirstValue(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER));
+			result.getParameters().set(FIELD_TWO_FACTOR_VALIDATED, Boolean.toString(Boolean.parseBoolean(p.getFirstValue(FIELD_TWO_FACTOR_VALIDATED, "false"))));
+			result.getParameters().set(FIELD_TOTP_SHARED_SECRET, p.getFirstValue(FIELD_TOTP_SHARED_SECRET));	//This is used to store the generated secret when setting up TOTP.
+
 			return result;
-		} catch (Exception e) {
-			//getLogger().log(Level.INFO, "Unable to decrypt cookie credentials", e);
+		}
+		catch (Exception e) {
+			Logger.getLogger(CookieAuthenticator.class.getName()).log(Level.INFO, "Unable to decrypt cookie credentials", e);
 			return null;
 		}
 	}
-	
-	public String format(ChallengeResponse cr) {
-		long issued = cr.getTimeIssued();
-		long expires = 0;
-		try { expires = Long.parseLong(cr.getParameters().getFirstValue("expires")); } catch (Throwable e) {}
-		if (issued + 60000 < System.currentTimeMillis()) {
-			issued = System.currentTimeMillis();
-			expires = System.currentTimeMillis() + ((long) maxExpiryAge * 1000);
-		}
-		
+
+	public static void setEncryptedCookieFromChallengeResponse(Request request, Response response, AuthenticationHelper helper) {
+		setEncryptedCookieFromChallengeResponse(request, response, helper, true);
+	}
+	public static void setEncryptedCookieFromChallengeResponse(Request request, Response response, AuthenticationHelper helper, boolean ipLock) {
+		final ChallengeResponse cr = request.getChallengeResponse();
 		final Form p = new Form();
-		p.set("issued", Long.toString(issued));
-		p.set("expires", Long.toString(expires));
-		p.set("identifier", cr.getIdentifier());
-		if (isAllowRemember()) {
-			boolean remember = false;
-			try { remember = Boolean.parseBoolean(cr.getParameters().getFirstValue("remember")); } catch (Throwable e) {}
-			p.set("remember", Boolean.toString(remember));
+		long expiryTimeMillis;
+		final boolean remember = Boolean.parseBoolean(cr.getParameters().getFirstValue(FIELD_REMEMBER, "false"));
+		p.set(FIELD_REMEMBER, Boolean.toString(remember));
+		if (ipLock){
+			//If ipLock is false, we don't set the client address field.  This means that the cookie will be valid for any IP.  This is a security risk, but it is mitigated by
+			// the fact that the expiry timeout is 30 seconds in the future.
+			p.set(FIELD_CLIENT_ADDRESS, getClientAddress(request));
+			
+			if (remember){
+				expiryTimeMillis = 30l * 24 * 60 * 60 * 1000;	//If "Remember me" is set, the cookie is valid for 30 days
+			}
+			else {
+				expiryTimeMillis = 60 * 60 * 1000;		//By default the cookie is valid for one hour
+			}
 		}
-		if (cr.getSecret() != null) p.set("secret", new String(cr.getSecret()));
-		final String authenticator = cr.getParameters().getFirstValue("authenticator");
-		if (authenticator != null) p.set("authenticator", authenticator);
+		else {
+			expiryTimeMillis = 30 * 1000;	//If ipLock is false, we set the expiry date for 30 seconds in the future.
+		}
+
+		final long issued = System.currentTimeMillis();	// / cookieRenewIntervalMillis * cookieRenewIntervalMillis;		//The issue date is truncated to <cookieRenewIntervalMillis> intervals (defaults to 5 minutes).  This is what determines when the cookie is to be renewed.
+		final long expires = issued + expiryTimeMillis;
 		
-//		System.out.println(p.getQueryString());
+		int maxAge = (int) (expiryTimeMillis / 1000);
+
+		p.set(FIELD_TIME_ISSUED, Long.toString(issued));
+		p.set(FIELD_COOKIE_EXPIRY_MILLIS, Long.toString(expires));
+		p.set(FIELD_IDENTIFIER, cr.getIdentifier());
+		if ("true".equals(cr.getParameters().getFirstValue(FIELD_SSO_AUTHENTICATED))){
+			p.set(FIELD_SSO_AUTHENTICATED, "true");
+			p.set(FIELD_SSO_USERNAME, cr.getParameters().getFirstValue(FIELD_SSO_USERNAME));
+			p.set(FIELD_SSO_SESSION_INDEX, cr.getParameters().getFirstValue(FIELD_SSO_SESSION_INDEX));
+			p.set(FIELD_SSO_PROVIDER_ID, cr.getParameters().getFirstValue(FIELD_SSO_PROVIDER_ID));
+			p.set(FIELD_SSO_PROVIDER_DESCRIPTION, cr.getParameters().getFirstValue(FIELD_SSO_PROVIDER_DESCRIPTION));
+			p.set(FIELD_PASSWORD, "");		//Secret is not used, but we need to have something there.
+			maxAge = -1;		//When using SSO, we discard cookies at the end of the session.
+		}
+		else if (cr.getSecret() != null){
+			p.set(FIELD_PASSWORD, new String(cr.getSecret()));
+		}
+		final String authenticator = cr.getParameters().getFirstValue(FIELD_AUTHENTICATOR);
+		if (authenticator != null){
+			p.set(FIELD_AUTHENTICATOR, authenticator);
+		}
+
+		if (Boolean.parseBoolean(cr.getParameters().getFirstValue(FIELD_TWO_FACTOR_VALIDATED, "false"))){
+			p.set(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER, cr.getParameters().getFirstValue(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER));
+			p.set(FIELD_TWO_FACTOR_VALIDATED, Boolean.toString(Boolean.parseBoolean(cr.getParameters().getFirstValue(FIELD_TWO_FACTOR_VALIDATED, "false"))));
+			p.set(FIELD_TOTP_SHARED_SECRET, cr.getParameters().getFirstValue(FIELD_TOTP_SHARED_SECRET));
+		}
+
+		try {
+			response.getCookieSettings().removeAll(helper.getCookieName());
+			setCookie(helper, request, response, helper.getCrypto().encrypt(helper.getKey(), p.getQueryString()), maxAge);
+		}
+		catch (Exception e){
+			Logger.getLogger(CookieAuthenticator.class.getName()).log(Level.WARNING, e.getMessage(), e);
+		}
+	}
+	
+	
+	private static String getClientAddress(Request request){
+		//We start with Restlet's client info upstream address.
+		String clientAddress = request.getClientInfo().getUpstreamAddress();
 		
-		return p.getQueryString();
-	}
-
-	protected boolean isIntercepting(Request request, Response response) {
-		return interceptPath != null
-			&& interceptPath.equals(request.getResourceRef().getRemainingPart(false, false))
-			&& (Method.POST.equals(request.getMethod()) || Method.DELETE.equals(request.getMethod()));
+		//If there are any x-forwarded-for headers, we use this to override.
+		for (NamedValue<String> namedValue : request.getHeaders()) {
+			if ("x-forwarded-for".equalsIgnoreCase(namedValue.getName())){
+				clientAddress = namedValue.getValue();
+			}
+		}
+		return clientAddress;
 	}
 	
-	protected boolean intercept(Request request, Response response) {
-		final Form form;
-		if (request.getMethod() == Method.DELETE) {
-			form = new Form();
-			form.set("action", "logout");
-		} else if (request.getMethod() == Method.POST) {
-			form = new Form(request.getEntity());
-			if (form.getFirstValue("action") == null) form.set("action", "login");
-		} else {
-			return true;
-		}
-		
-		final Action action = Action.find(form.getFirstValue("action"));
-	
-		ChallengeResponse cr = null;
-		if (action == Action.LOGIN) {
-			if (form.getFirstValue("identifier") == null) {
-				// re-authenticating expired credentials
-				cr = parse(request.getCookies().getFirst(cookieName).getValue(), false);
-				if (cr == null) {
-					response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
-					return false;
-				}
-				cr.getParameters().removeAll("expires");
-				cr.setSecret(form.getFirstValue("secret"));
-			} else if (form.getFirstValue("impersonate") == null) {
-				// normal login 
-				cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
-			} else {
-				// attempting to sudo right away
-				cr = new ChallengeResponse(getScheme(), form.getFirstValue("impersonate"), form.getFirstValue("secret"));
-				cr.getParameters().set("authenticator", form.getFirstValue("identifier"));
-			}
-			if (isAllowRemember()) {
-				cr.getParameters().add("remember", form.getFirstValue("remember") != null ? "true" : "false");
-			}
-		} else if (action == Action.LOGOUT) {
-			try {
-				cr = parse(request.getCookies().getFirst(cookieName).getValue(), true);
-				
-				final String authenticator = cr.getParameters().getFirstValue("authenticator");
-				if (authenticator == null) {
-					// user is logged in normally, discard their credentials 
-					request.setChallengeResponse(null);
-					final CookieSetting credentialsCookie = getCredentialsCookie(request, response);
-					credentialsCookie.setMaxAge(0);
-					return false;
-				} else {
-					// user is currently impersonating another user so restore them to their original credentials
-					cr.setIdentifier(authenticator);
-					cr.getParameters().removeAll("authenticator");
-				}
-			} catch (Throwable t) {
-				; // no cookie, already not logged in
-			}
-		} else if (action == Action.RESET) {
-			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
-			request.getAttributes().put("form", form);
-		} else if (action == Action.REGISTER) {
-			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
-			cr.getParameters().add("email", form.getFirstValue("email"));
-			cr.getParameters().add("firstName", form.getFirstValue("firstName"));
-			cr.getParameters().add("lastName", form.getFirstValue("lastName"));
-			request.getAttributes().put("form", form);
-		} else if (action == Action.ACTIVATE) {
-			cr = new ChallengeResponse(getScheme(), form.getFirstValue("identifier"), form.getFirstValue("secret"));
-			cr.getParameters().add("activationKey", form.getFirstValue("identifier"));
-			cr.getParameters().add("remember", form.getFirstValue("remember"));
-		} else if (action == Action.IMPERSONATE) {
-			cr = parse(request.getCookies().getFirst(cookieName).getValue(), true);
-			cr.getParameters().add("authenticator", cr.getIdentifier());
-			cr.setIdentifier(form.getFirstValue("impersonate"));
-			request.setChallengeResponse(cr);
-		}
-		if (cr != null) {
-			cr.getParameters().add("action", form.getFirstValue("action"));
-		}
-		request.setChallengeResponse(cr);
-		return true;
-	}
+	public static void setCookie(AuthenticationHelper helper, Request request, Response response, String value, int maxAge){
+		response.getCookieSettings().removeAll(helper.getCookieName());
+		final CookieSetting credentialsCookie = new CookieSetting(helper.getCookieName(), null);
+		credentialsCookie.setValue(value);
+		credentialsCookie.setAccessRestricted(true);
+		credentialsCookie.setSecure(helper.isUseSecureCookies());
+		credentialsCookie.setMaxAge(maxAge);
 
-	protected CookieSetting getCredentialsCookie(Request request, Response response) {
-		CookieSetting cs = response.getCookieSettings().getFirst(cookieName);
-
-		if (cs == null) {
-			cs = new CookieSetting(cookieName, null);
-			cs.setAccessRestricted(true);
-
-			if (request.getRootRef() != null) {
-				String p = request.getRootRef().getPath();
-				cs.setPath(p == null ? "/" : p);
-			} else {
-			}
-			response.getCookieSettings().add(cs);
+		if (request.getRootRef() != null) {
+			final String path = helper.getCookiePath();
+			credentialsCookie.setPath(path == null ? "/" : path);
 		}
 
-		return cs;
+		response.getCookieSettings().add(credentialsCookie);
 	}
 	
-	public int getMaxCookieAge() {
-		return maxCookieAge;
-	}
-	/**
-	 * Sets the maximum number of seconds that the browser should retain the cookie.
-	 * Use -1 to discard the cookie at the end of the session.
-	 * This option is only used when the allowRemember option is false.
-	 */
-	public void setMaxCookieAge(int maxCookieAge) {
-		this.maxCookieAge = maxCookieAge;
+	public static void addValidatedSsoSessionIndex(AuthenticationHelper helper, String identifier, String sessionIndex){
+		helper.insertValidatedSsoSession(identifier, sessionIndex);
 	}
 	
-	public int getMaxExpiryAge() {
-		return maxExpiryAge;
+	public static boolean isSsoSessionIndexValid(AuthenticationHelper helper, String identifier, String sessionIndex){
+		return helper.isValidatedSsoSession(identifier, sessionIndex);
 	}
-	/**
-	 * Sets the maximum number of seconds that the server should honor the cookie.
-	 * Use this option to simulate a session timeout.
-	 * Defaults to MAX_INT.
-	 */
-	public void setMaxExpiryAge(int maxExpiryAge) {
-		this.maxExpiryAge = maxExpiryAge;
+	
+	public static void invalidateSsoSessionIndex(AuthenticationHelper helper, String identifier, String sessionIndex){
+		helper.deleteValidatedSsoSession(identifier, sessionIndex);
 	}
 	
 	public int getDelay() {
@@ -401,50 +365,242 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	public void setSecure(boolean secure) {
 		this.secure = secure;
 	}
-	
-	public boolean isAllowRemember() {
-		return allowRemember;
-	}
-	/**
-	 * Indicates if the user has an option to remember the cookie for the maximum age.
-	 * If this option is true and the user opts to have their cookie remembered then the cookie age is set to MAX_INT, otherwise it is set to -1 (discard at end of session).
-	 * If this option is false the cookie age is set according to the maxCookieAge option.
-	 * Default is true.
-	 */
-	public void setAllowRemember(boolean allowRemember) {
-		this.allowRemember = allowRemember;
-	}
-	
-	public enum Action {
-		LOGIN, LOGOUT, IMPERSONATE, REGISTER, RESET, ACTIVATE;
-	
-		public static Action find(String name) {
-			if ("login".equalsIgnoreCase(name)) {
-				return LOGIN;
-			} else if ("logout".equalsIgnoreCase(name)) {
-				return LOGOUT;
-			} else if ("impersonate".equalsIgnoreCase(name)) {
-				return IMPERSONATE;
-			} else if ("enrole".equalsIgnoreCase(name) || "register".equalsIgnoreCase(name)) {
-				return REGISTER;
-			} else if ("reset".equalsIgnoreCase(name)) {
-				return RESET;
-			} else if ("activate".equals(name)) {
-				return ACTIVATE;
-			} else {
-				return LOGIN;
-			}
-		}
-	}
 
-	public static String getAuthenticator(ChallengeResponse cr) {
-		if (cr.getParameters().getFirstValue("authenticator") != null) {
-			return cr.getParameters().getFirstValue("authenticator");
+	/**
+	 * Returns the authenticated user; if impersonating another user, this will return the user who is doing the impersonating (i.e. the admin user)
+	 */
+	public static String getAuthenticator(ChallengeResponse challengeResponse) {
+		if (challengeResponse == null){
+			return null;
+		}
+		if (challengeResponse.getParameters().getFirstValue(FIELD_AUTHENTICATOR) != null) {
+			return challengeResponse.getParameters().getFirstValue(FIELD_AUTHENTICATOR);
 		} else {
-			return cr.getIdentifier();
+			return challengeResponse.getIdentifier();
 		}
 	}
-	public static void setPasswordExpired(Request request) {
-		request.getChallengeResponse().getParameters().add("passwordExpired", "true");
+	
+	public static boolean isPasswordExpired(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return false;
+		}
+		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_PASSWORD_EXPIRED, "false"));
 	}
+	public static void setPasswordExpired(ChallengeResponse challengeResponse) {
+		if (challengeResponse == null){
+			return;
+		}
+		challengeResponse.getParameters().set(FIELD_PASSWORD_EXPIRED, "true");
+	}
+	
+	public static boolean isTwoFactorRequired(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return false;
+		}
+		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_TWO_FACTOR_REQUIRED, "false"));
+	}
+	public static void setTwoFactorRequired(ChallengeResponse challengeResponse) {
+		if (challengeResponse == null){
+			return;
+		}
+		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_REQUIRED, "true");
+	}
+	
+	public static boolean isTwoFactorPrompt(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return false;
+		}
+		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_TWO_FACTOR_PROMPT, "false"));
+	}
+	public static void setTwoFactorPrompt(ChallengeResponse challengeResponse) {
+		if (challengeResponse == null){
+			return;
+		}
+		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_PROMPT, "true");
+	}
+	public static boolean isTwoFactorSetup(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return false;
+		}
+		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_TWO_FACTOR_SETUP, "false"));
+	}
+	public static void setTwoFactorSetup(ChallengeResponse challengeResponse) {
+		if (challengeResponse == null){
+			return;
+		}
+		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_SETUP, "true");
+	}
+	
+//	public static boolean isTwoFactorSetupNeeded(ChallengeResponse challengeResponse){
+//		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_TWO_FACTOR_SETUP, "false"));
+//	}
+//	public static void setTwoFactorSetupNeeded(ChallengeResponse challengeResponse) {
+//		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_SETUP, "true");
+//	}
+	
+//	public static boolean isRemember(ChallengeResponse challengeResponse){
+//		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_REMEMBER, "false"));
+//	}
+//	public static void setRemember(ChallengeResponse challengeResponse){
+//		challengeResponse.getParameters().set(FIELD_REMEMBER, "true");
+//	}
+	
+	public static boolean isTwoFactorValidated(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return false;
+		}
+
+		final boolean twoFactorValidated = Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_TWO_FACTOR_VALIDATED, "false"));
+		final boolean twoFactorValidatedByAuthenticator = getAuthenticator(challengeResponse).equals(challengeResponse.getParameters().getFirstValue(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER));
+		
+		return twoFactorValidated && twoFactorValidatedByAuthenticator;
+	}
+	public static void setTwoFactorValidated(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return;
+		}
+
+		challengeResponse.getParameters().removeAll(CookieAuthenticator.FIELD_TOTP_SHARED_SECRET);	//If we have any shared secrets in the ChallengeResponse (from TOTP setup), delete them now.
+		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_VALIDATED, "true");
+		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER, challengeResponse.getIdentifier());
+	}
+//	public static boolean isTotpBackupCodesNeeded(ChallengeResponse challengeResponse){
+//		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_TOTP_BACKUP_CODES_NEEDED, "false"));
+//	}
+//	public static void setTotpBackupCodesNeeded(ChallengeResponse challengeResponse){
+//		challengeResponse.getParameters().set(FIELD_TOTP_BACKUP_CODES_NEEDED, "true");
+//	}
+//	
+	/**
+	 * Has the user signed on with SSO?  This doesn't test if the session is still valid; use isSsoSessionValid for that.
+	 */
+	public static boolean isSsoAuthenticated(ChallengeResponse challengeResponse){
+		if (challengeResponse == null || challengeResponse.getParameters() == null){
+			return false;	//If the ChallengeResponse doesn't claim that SAML is authenticated, it is definitely not.
+		}
+		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_SSO_AUTHENTICATED, "false"));
+	}
+	public static String getSsoProviderId(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return null;
+		}
+
+		return challengeResponse.getParameters().getFirstValue(FIELD_SSO_PROVIDER_ID);
+	}
+	public static String getSsoProviderDescription(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return null;
+		}
+
+		return challengeResponse.getParameters().getFirstValue(FIELD_SSO_PROVIDER_DESCRIPTION);
+	}
+	public static String getSsoSessionIndex(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return null;
+		}
+
+		return challengeResponse.getParameters().getFirstValue(FIELD_SSO_SESSION_INDEX);
+	}
+	public static void setSsoAuthenticated(AuthenticationHelper helper, ChallengeResponse challengeResponse, String ssoProviderId, String ssoProviderDescription, String ssoUsername, String ssoSessionIndex){
+		if (challengeResponse == null){
+			return;
+		}
+
+		challengeResponse.getParameters().set(FIELD_SSO_AUTHENTICATED, "true");
+		challengeResponse.getParameters().set(FIELD_SSO_USERNAME, ssoUsername);
+		challengeResponse.getParameters().set(FIELD_SSO_SESSION_INDEX, ssoSessionIndex);
+		challengeResponse.getParameters().set(FIELD_SSO_PROVIDER_ID, ssoProviderId);
+		challengeResponse.getParameters().set(FIELD_SSO_PROVIDER_DESCRIPTION, ssoProviderDescription);
+		
+		addValidatedSsoSessionIndex(helper, ssoUsername, ssoSessionIndex);
+	}
+	
+	public static boolean isSsoSessionValid(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return false;
+		}
+		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_SSO_SESSION_VALID, "false"));
+	}
+	public static void setSsoSessionValid(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return;
+		}
+
+		challengeResponse.getParameters().set(FIELD_SSO_SESSION_VALID, "true");
+	}
+	
+	
+
+	public static boolean isImpersonating(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return false;
+		}
+
+		final String authenticator = challengeResponse.getParameters().getFirstValue(FIELD_AUTHENTICATOR);
+		return authenticator != null && authenticator.trim().length() > 0;
+	}
+	
+	public static boolean isAuthenticationValid(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return false;
+		}
+		return isPrimaryAuthenticationValid(challengeResponse) && isSecondaryAuthenticationValid(challengeResponse);
+	}
+	
+	/**
+	 * Returns true if the primary authentication checks have returned true.  This means that one of the following has succeeded:
+	 *  - Username / Password verified (and password not required)
+	 *  - SSO validated
+	 */
+	public static boolean isPrimaryAuthenticationValid(ChallengeResponse challengeResponse){
+		if (challengeResponse == null || challengeResponse.getParameters() == null){
+			return false;
+		}
+		
+		if (isSsoAuthenticated(challengeResponse)){
+			return isSsoSessionValid(challengeResponse);
+		}
+		else if (StringUtils.isNotBlank(challengeResponse.getIdentifier())){
+			final boolean passwordExpired = Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_PASSWORD_EXPIRED, "false"));
+			if (passwordExpired){
+				return false;
+			}
+
+			return true;
+		}
+		
+		return false;
+	}
+	
+	
+	/**
+	 * Returns true if all secondary authentication checks have returned true.  This includes:
+	 *  - TOTP has either been validated or it is not required for this user
+	 *  - Basic Auth does not support 2fa, and so is exempt from these checks.
+	 */
+	public static boolean isSecondaryAuthenticationValid(ChallengeResponse challengeResponse){
+		if (challengeResponse == null){
+			return false;
+		}
+		if (!challengeResponse.getScheme().equals(ChallengeScheme.HTTP_BASIC)){		//Basic auth doesn't need 2FA.  This is used for web services.
+			if (challengeResponse == null || challengeResponse.getParameters() == null){
+				return false;
+			}
+
+			if (isTwoFactorValidated(challengeResponse)){	//If two factor has been validated (and the user matches), then we are good to go.
+				return true;
+			}
+			else if (CookieAuthenticator.isTwoFactorRequired(challengeResponse)) {	//Two factor is required  
+				return false;	// ... and user needs it for SSO primary auth
+			}
+//			else if (CookieAuthenticator.isTwoFactorSetup(challengeResponse)){	//Two factor is set up, therefore we need to honour it.
+//				return false;
+//			}
+		}
+		
+		return true;
+	}
+	
+	
+
 }
