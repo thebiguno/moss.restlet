@@ -75,9 +75,9 @@ public class SamlUtil {
 		settingsMap.put(SettingsBuilder.SECURITY_REJECT_DEPRECATED_ALGORITHM, true);
 		
 		//Organization settings - these should be common for the entire application.
-		settingsMap.put(SettingsBuilder.ORGANIZATION_NAME, "Enrich Software Corp.");
-		settingsMap.put(SettingsBuilder.ORGANIZATION_DISPLAYNAME, "Enrich Software Corp.");
-		settingsMap.put(SettingsBuilder.ORGANIZATION_URL, "https://www.richer.ca");
+		settingsMap.put(SettingsBuilder.ORGANIZATION_NAME, "digitalcave.ca");
+		settingsMap.put(SettingsBuilder.ORGANIZATION_DISPLAYNAME, "digitalcave.ca");
+		settingsMap.put(SettingsBuilder.ORGANIZATION_URL, "https://digitalcave.ca.ca");
 		settingsMap.put(SettingsBuilder.ORGANIZATION_LANG, "en");
 		
 		//Contacts settings - these should be common for the entire application.

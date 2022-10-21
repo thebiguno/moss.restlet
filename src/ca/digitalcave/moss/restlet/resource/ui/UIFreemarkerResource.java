@@ -53,7 +53,7 @@ public class UIFreemarkerResource extends ServerResource {
 			final Locale locale = LocalizationUtil.getLocale(variant);
 			dataModel.put("i18n", new OverridableResourceBundle(
 					(helper.getConfig().i18nBaseCustom == null ? null : ResourceBundle.getBundle(helper.getConfig().i18nBaseCustom, locale)),
-					ResourceBundle.getBundle("ca.richer.auth.restlet.i18n", locale)	//Built in i18n
+					ResourceBundle.getBundle("ca.digitalcave.moss.restlet.i18n", locale)	//Built in i18n
 				));
 			
 			dataModel.put("ssoProviders", helper.selectSSOProviders());
