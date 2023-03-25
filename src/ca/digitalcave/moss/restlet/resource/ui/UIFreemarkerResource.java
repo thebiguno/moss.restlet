@@ -56,8 +56,6 @@ public class UIFreemarkerResource extends ServerResource {
 					ResourceBundle.getBundle("ca.digitalcave.moss.restlet.i18n", locale)	//Built in i18n
 				));
 			
-			dataModel.put("ssoProviders", helper.selectSSOProviders());
-
 			final AuthUser user = (AuthUser) getRequest().getClientInfo().getUser();
 			final ChallengeResponse cr = getChallengeResponse();
 			

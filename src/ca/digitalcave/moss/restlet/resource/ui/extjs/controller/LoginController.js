@@ -27,11 +27,8 @@ Ext.define("Login.controller.LoginController", {
 			
 			"login form[itemId='totpSetup']": { "activate": this.totpLoadSecret },
 			"login button[itemId='totpLoadSecret']": { "click": this.totpLoadSecret },
+			"login button[itemId='totpDisable']": { "click": this.totpDisable },
 			
-			"login button[itemId='totpPromptSetupNo']": { "click": this.totpSkipSetup },
-			"login button[itemId='totpPromptSetupDontAsk']": { "click": this.totpForgetSetup },
-			"login button[itemId='totpPromptSetupYes']": { "click": this.totpShowSetup },
-
 			"login button[itemId='totpSetupVerify']": { "click": this.totpStoreSecret },
 			"login form[itemId='totpSetup'] textfield": { "keypress": this.totpStoreSecret },
 			
@@ -78,18 +75,6 @@ Ext.define("Login.controller.LoginController", {
 					}
 					else if (response && response.next == "totpSetup"){
 						cmp.up("panel[itemId='authenticate']").up('panel').getLayout().setActiveItem("totpSetup");
-					}
-					else if (response && response.next == "totpPromptSetup"){
-						var doNotAskFor2faEnabledStorage = Ext.util.LocalStorage.get("doNotAskFor2faEnabled");
-						var doNotAskFor2faEnabled = doNotAskFor2faEnabledStorage.getItem(window.location.href);
-						doNotAskFor2faEnabledStorage.release();
-			
-						if (doNotAskFor2faEnabled != "true"){
-							cmp.up("panel[itemId='authenticate']").up('panel').getLayout().setActiveItem("totpPromptSetup");
-						}
-						else {
-							window.location.reload();
-						}
 					}
 					else {
 						cmp.up("panel[itemId='authenticate']").down('transientlabel[itemId=messageLogin1]').setDisappearingHtml("${i18n("INVALID_CREDENTIALS_MESSAGE")?json_string}");
@@ -151,21 +136,6 @@ Ext.define("Login.controller.LoginController", {
 		}
 	},
 	
-	"totpSkipSetup": function(button){
-		window.location.reload();
-	},
-	
-	"totpForgetSetup": function(button){
-		var doNotAskFor2faEnabledStorage = Ext.util.LocalStorage.get("doNotAskFor2faEnabled");
-		doNotAskFor2faEnabledStorage.setItem(window.location.href, "true");
-		doNotAskFor2faEnabledStorage.release();
-		window.location.reload();
-	},
-	
-	"totpShowSetup": function(button){
-		button.up("panel[itemId='totpPromptSetup']").up('panel').getLayout().setActiveItem("totpSetup");
-	},
-	
 	"totpLoadSecret": function(component){
 		var panel = component.xtype == "form" ? component : component.up('form');
 		Ext.Ajax.request({
@@ -187,6 +157,21 @@ Ext.define("Login.controller.LoginController", {
 		});
 	},
 	
+	"totpDisable": function(component){
+		var panel = component.xtype == "form" ? component : component.up('form');
+		Ext.Ajax.request({
+			"url": "authentication/totpSetup",
+			"method": "DELETE",
+			"success": function(response, options){
+				window.location.reload();
+			},
+			"failure": function(form, action){
+				//Not sure what we need to do here
+				window.location.reload();
+			},
+			"scope": panel
+		});
+	},
 	
 	"totpStoreSecret": function(cmp, e) {
 		if (!(e.getKey()) || e.getKey() == e.ENTER) {
@@ -228,7 +213,7 @@ Ext.define("Login.controller.LoginController", {
 	"printBackupCodes": function(button){
 		var totpBackupCodes = button.up("form").down("textarea[itemId='totpBackupCodes']").getValue();
 		var winPrint = window.open();
-		winPrint.document.write("<html><head><script type='text/javascript'>window.print();</script></head><body><pre>" + totpBackupCodes + "</pre></body></html>");
+		winPrint.document.write("<html><head><script type='text/javascript'>setTimeout(function(){window.print();}, 100);</script></head><body><pre>" + totpBackupCodes + "</pre></body></html>");
 		winPrint.document.close();
 		winPrint.focus();
 	},

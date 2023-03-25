@@ -1,10 +1,7 @@
 package ca.digitalcave.moss.restlet.plugin;
 
 import java.security.Key;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,7 +15,6 @@ import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import ca.digitalcave.moss.crypto.DefaultHash;
 import ca.digitalcave.moss.crypto.Hash;
 import ca.digitalcave.moss.restlet.model.AuthUser;
-import ca.digitalcave.moss.restlet.model.SsoProvider;
 import ca.digitalcave.moss.restlet.util.PasswordChecker;
 
 /**
@@ -70,11 +66,6 @@ public abstract class AuthenticationHelper {
 	public abstract AuthUser selectUser(String username);
 	
 	/**
-	 * Returns the user associated with the username.
-	 */
-	public abstract AuthUser selectUserBySsoIdentifier(String ssoIdentifier);
-	
-	/**
 	 * Returns the list of users associated with the email address.
 	 */
 	public abstract List<AuthUser> selectUsers(String email);
@@ -98,6 +89,13 @@ public abstract class AuthenticationHelper {
 		throw new RuntimeException("Not implemented");
 	}
 	
+	/**
+	 * Disables TOTP for the specified user.  This should include setting the 'totp required' flag to false at a minimum.  
+	 * This is called from the "TOTP Setup" panel, and allows a user to cancel their TOTP request.
+	 * It is recommended that implementing code verifies that the user which is disabling TOTP does not have a secret
+	 * set up (i.e. TOTP is not yet set up, and is in the process of being enabled).
+	 */
+	public abstract void disableTotp(String username) ;
 
 	//******************* Forgot Password Section *******************//
 	
@@ -128,51 +126,6 @@ public abstract class AuthenticationHelper {
 	 * set, false otherwise
 	 */
 	public abstract boolean updatePassword(String username, String hashedPassword);
-
-	//******************* SSO Provider / Config Section *******************//
-	
-	/**
-	 * Return the SSO Provider associated with the supplied UUID.
-	 */
-	public abstract SsoProvider selectSSOProvider(String ssoProviderId);
-	
-	/**
-	 * Return a list of SSO Providers.
-	 */
-	public abstract List<SsoProvider> selectSSOProviders();
-	
-	/**
-	 * Returns the public baseUrl of the application.  Needed when registering SSO with an IdP.
-	 */
-	public abstract String getBaseUrl();
-	
-	//******************* SSO Valid Sessions Section *******************//
-	
-	private final static Map<String, Long> validatedSamlSessionIndexes = Collections.synchronizedMap(new HashMap<String, Long>());
-	
-	/**
-	 * Adds the specified SSO session to the validated list.  By default this is stored in an in-memory map, but this can be persisted to allow server restarts or sharing sessions across apps.
-	 */
-	public void insertValidatedSsoSession(String identifier, String sessionId){
-		validatedSamlSessionIndexes.put(sessionId, System.currentTimeMillis());
-	}
-	
-	/**
-	 * Removes the specified SSO session from the validated list.  By default this is stored in an in-memory map, but this can be persisted to allow server restarts or sharing sessions across apps.
-	 */
-	public void deleteValidatedSsoSession(String identifier, String sessionId){
-		validatedSamlSessionIndexes.remove(sessionId);
-	}
-	
-	/**
-	 * Checks if the specified SSO session is valid.  By default this is stored in an in-memory map, but this can be persisted to allow server restarts or sharing sessions across apps.
-	 */
-	public boolean isValidatedSsoSession(String identifier, String sessionId){
-		if (sessionId == null){
-			return false;
-		}
-		return (validatedSamlSessionIndexes.get(sessionId) != null);
-	}
 	
 	//******************* Cookie Encryption Section *******************//
 	

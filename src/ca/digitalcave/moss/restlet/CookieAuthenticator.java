@@ -45,14 +45,6 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	public static final String FIELD_PASSWORD_EXPIRED = "passwordExpired";
 	public static final String FIELD_CLIENT_ADDRESS = "clientAddress";
 	
-	public static final String FIELD_SSO_USERNAME = "ssoUsername";						//The username which was used to log in with SAML.
-	public static final String FIELD_SSO_PROVIDER_ID = "ssoProviderId";					//The SAML provider ID, generally a UUID.
-	public static final String FIELD_SSO_PROVIDER_DESCRIPTION = "ssoProviderDescription";	//The SAML provider description, as a human readable string (e.g. 'Office 365')
-	public static final String FIELD_SSO_SESSION_INDEX = "ssoSessionIndex";				//The SAML session index, provided by the IdP at login time
-	
-	public static final String FIELD_SSO_AUTHENTICATED = "ssoAuthenticated";				//Has SSO authentication succeeded?  This is stored in the cookie; every request must also be validated.
-	public static final String FIELD_SSO_SESSION_VALID = "ssoSessionValid";					//The SSO session index MUST be verified for each request in the helper's authenticate method.
-	
 	public static final String FIELD_TOTP_TOKEN = "totpToken";								//The TOTP token submitted by the user
 	public static final String FIELD_TOTP_SHARED_SECRET = "totpSharedSecret";				//The TOTP shared secret.  Used for sending the secret to the user at TOTP setup time
 	public static final String FIELD_TOTP_SHARED_SECRET_QR = "totpSharedSecretQr";			//The TOTP shared secret in QR code format.  Used for sending the secret to the user at TOTP setup time
@@ -61,7 +53,6 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	public static final String FIELD_TWO_FACTOR_VALIDATED = "twoFactorValidated";			//The user has used two factor auth when logging in.  This may be TOTP (for password logins), or the SSO may have prompted for two factor.
 	
 	public static final String FIELD_TWO_FACTOR_REQUIRED = "twoFactorRequired";				//Is Two Factor auth needed for this user?  This is not persisted in the cookie, but is set in CookieVerifier every request.
-	public static final String FIELD_TWO_FACTOR_PROMPT = "twoFactorPrompt";					//Should we prompt for Two Factor auth for this user?  This is not persisted in the cookie, but is set in CookieVerifier every request.
 	public static final String FIELD_TWO_FACTOR_SETUP = "twoFactorSetup";					//Is Two Factor auth setup for this user?  This is not persisted in the cookie, but is set in CookieVerifier every request.
 	
 	
@@ -137,6 +128,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		}
 		
 		if (authenticated){
+			request.getAttributes().put(CookieAuthenticator.ATTRIBUTE_AUTHENTICATION_HELPER, authenticationHelper);
 			final String clientInfoIdentifier = request.getClientInfo() != null && request.getClientInfo().getUser() != null ? request.getClientInfo().getUser().getIdentifier() : null;
 			final String challengeResponseIdentifier = cr != null ? cr.getIdentifier() : null;
 			if (clientInfoIdentifier != null){
@@ -212,12 +204,6 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			result.setIdentifier(p.getFirstValue(FIELD_IDENTIFIER));
 			result.setSecret(p.getFirstValue(FIELD_PASSWORD));
 			
-			result.getParameters().set(FIELD_SSO_AUTHENTICATED, p.getFirstValue(FIELD_SSO_AUTHENTICATED));
-			result.getParameters().set(FIELD_SSO_USERNAME, p.getFirstValue(FIELD_SSO_USERNAME));
-			result.getParameters().set(FIELD_SSO_SESSION_INDEX, p.getFirstValue(FIELD_SSO_SESSION_INDEX));
-			result.getParameters().set(FIELD_SSO_PROVIDER_ID, p.getFirstValue(FIELD_SSO_PROVIDER_ID));
-			result.getParameters().set(FIELD_SSO_PROVIDER_DESCRIPTION, p.getFirstValue(FIELD_SSO_PROVIDER_DESCRIPTION));
-			
 			if (p.getFirstValue(FIELD_AUTHENTICATOR) != null) {
 				result.getParameters().set(FIELD_AUTHENTICATOR, p.getFirstValue(FIELD_AUTHENTICATOR));
 			}
@@ -269,16 +255,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		p.set(FIELD_TIME_ISSUED, Long.toString(issued));
 		p.set(FIELD_COOKIE_EXPIRY_MILLIS, Long.toString(expires));
 		p.set(FIELD_IDENTIFIER, cr.getIdentifier());
-		if ("true".equals(cr.getParameters().getFirstValue(FIELD_SSO_AUTHENTICATED))){
-			p.set(FIELD_SSO_AUTHENTICATED, "true");
-			p.set(FIELD_SSO_USERNAME, cr.getParameters().getFirstValue(FIELD_SSO_USERNAME));
-			p.set(FIELD_SSO_SESSION_INDEX, cr.getParameters().getFirstValue(FIELD_SSO_SESSION_INDEX));
-			p.set(FIELD_SSO_PROVIDER_ID, cr.getParameters().getFirstValue(FIELD_SSO_PROVIDER_ID));
-			p.set(FIELD_SSO_PROVIDER_DESCRIPTION, cr.getParameters().getFirstValue(FIELD_SSO_PROVIDER_DESCRIPTION));
-			p.set(FIELD_PASSWORD, "");		//Secret is not used, but we need to have something there.
-			maxAge = -1;		//When using SSO, we discard cookies at the end of the session.
-		}
-		else if (cr.getSecret() != null){
+		if (cr.getSecret() != null){
 			p.set(FIELD_PASSWORD, new String(cr.getSecret()));
 		}
 		final String authenticator = cr.getParameters().getFirstValue(FIELD_AUTHENTICATOR);
@@ -286,11 +263,9 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			p.set(FIELD_AUTHENTICATOR, authenticator);
 		}
 
-		if (Boolean.parseBoolean(cr.getParameters().getFirstValue(FIELD_TWO_FACTOR_VALIDATED, "false"))){
-			p.set(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER, cr.getParameters().getFirstValue(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER));
-			p.set(FIELD_TWO_FACTOR_VALIDATED, Boolean.toString(Boolean.parseBoolean(cr.getParameters().getFirstValue(FIELD_TWO_FACTOR_VALIDATED, "false"))));
-			p.set(FIELD_TOTP_SHARED_SECRET, cr.getParameters().getFirstValue(FIELD_TOTP_SHARED_SECRET));
-		}
+		p.set(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER, cr.getParameters().getFirstValue(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER));
+		p.set(FIELD_TWO_FACTOR_VALIDATED, Boolean.toString(Boolean.parseBoolean(cr.getParameters().getFirstValue(FIELD_TWO_FACTOR_VALIDATED, "false"))));
+		p.set(FIELD_TOTP_SHARED_SECRET, cr.getParameters().getFirstValue(FIELD_TOTP_SHARED_SECRET));
 
 		try {
 			response.getCookieSettings().removeAll(helper.getCookieName());
@@ -329,18 +304,6 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		}
 
 		response.getCookieSettings().add(credentialsCookie);
-	}
-	
-	public static void addValidatedSsoSessionIndex(AuthenticationHelper helper, String identifier, String sessionIndex){
-		helper.insertValidatedSsoSession(identifier, sessionIndex);
-	}
-	
-	public static boolean isSsoSessionIndexValid(AuthenticationHelper helper, String identifier, String sessionIndex){
-		return helper.isValidatedSsoSession(identifier, sessionIndex);
-	}
-	
-	public static void invalidateSsoSessionIndex(AuthenticationHelper helper, String identifier, String sessionIndex){
-		helper.deleteValidatedSsoSession(identifier, sessionIndex);
 	}
 	
 	public int getDelay() {
@@ -405,19 +368,6 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		}
 		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_REQUIRED, "true");
 	}
-	
-	public static boolean isTwoFactorPrompt(ChallengeResponse challengeResponse){
-		if (challengeResponse == null){
-			return false;
-		}
-		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_TWO_FACTOR_PROMPT, "false"));
-	}
-	public static void setTwoFactorPrompt(ChallengeResponse challengeResponse) {
-		if (challengeResponse == null){
-			return;
-		}
-		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_PROMPT, "true");
-	}
 	public static boolean isTwoFactorSetup(ChallengeResponse challengeResponse){
 		if (challengeResponse == null){
 			return false;
@@ -430,20 +380,6 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		}
 		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_SETUP, "true");
 	}
-	
-//	public static boolean isTwoFactorSetupNeeded(ChallengeResponse challengeResponse){
-//		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_TWO_FACTOR_SETUP, "false"));
-//	}
-//	public static void setTwoFactorSetupNeeded(ChallengeResponse challengeResponse) {
-//		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_SETUP, "true");
-//	}
-	
-//	public static boolean isRemember(ChallengeResponse challengeResponse){
-//		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_REMEMBER, "false"));
-//	}
-//	public static void setRemember(ChallengeResponse challengeResponse){
-//		challengeResponse.getParameters().set(FIELD_REMEMBER, "true");
-//	}
 	
 	public static boolean isTwoFactorValidated(ChallengeResponse challengeResponse){
 		if (challengeResponse == null){
@@ -464,72 +400,14 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_VALIDATED, "true");
 		challengeResponse.getParameters().set(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER, challengeResponse.getIdentifier());
 	}
-//	public static boolean isTotpBackupCodesNeeded(ChallengeResponse challengeResponse){
-//		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_TOTP_BACKUP_CODES_NEEDED, "false"));
-//	}
-//	public static void setTotpBackupCodesNeeded(ChallengeResponse challengeResponse){
-//		challengeResponse.getParameters().set(FIELD_TOTP_BACKUP_CODES_NEEDED, "true");
-//	}
-//	
-	/**
-	 * Has the user signed on with SSO?  This doesn't test if the session is still valid; use isSsoSessionValid for that.
-	 */
-	public static boolean isSsoAuthenticated(ChallengeResponse challengeResponse){
-		if (challengeResponse == null || challengeResponse.getParameters() == null){
-			return false;	//If the ChallengeResponse doesn't claim that SAML is authenticated, it is definitely not.
-		}
-		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_SSO_AUTHENTICATED, "false"));
-	}
-	public static String getSsoProviderId(ChallengeResponse challengeResponse){
-		if (challengeResponse == null){
-			return null;
-		}
-
-		return challengeResponse.getParameters().getFirstValue(FIELD_SSO_PROVIDER_ID);
-	}
-	public static String getSsoProviderDescription(ChallengeResponse challengeResponse){
-		if (challengeResponse == null){
-			return null;
-		}
-
-		return challengeResponse.getParameters().getFirstValue(FIELD_SSO_PROVIDER_DESCRIPTION);
-	}
-	public static String getSsoSessionIndex(ChallengeResponse challengeResponse){
-		if (challengeResponse == null){
-			return null;
-		}
-
-		return challengeResponse.getParameters().getFirstValue(FIELD_SSO_SESSION_INDEX);
-	}
-	public static void setSsoAuthenticated(AuthenticationHelper helper, ChallengeResponse challengeResponse, String ssoProviderId, String ssoProviderDescription, String ssoUsername, String ssoSessionIndex){
-		if (challengeResponse == null){
-			return;
-		}
-
-		challengeResponse.getParameters().set(FIELD_SSO_AUTHENTICATED, "true");
-		challengeResponse.getParameters().set(FIELD_SSO_USERNAME, ssoUsername);
-		challengeResponse.getParameters().set(FIELD_SSO_SESSION_INDEX, ssoSessionIndex);
-		challengeResponse.getParameters().set(FIELD_SSO_PROVIDER_ID, ssoProviderId);
-		challengeResponse.getParameters().set(FIELD_SSO_PROVIDER_DESCRIPTION, ssoProviderDescription);
-		
-		addValidatedSsoSessionIndex(helper, ssoUsername, ssoSessionIndex);
-	}
 	
-	public static boolean isSsoSessionValid(ChallengeResponse challengeResponse){
-		if (challengeResponse == null){
-			return false;
-		}
-		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_SSO_SESSION_VALID, "false"));
-	}
-	public static void setSsoSessionValid(ChallengeResponse challengeResponse){
-		if (challengeResponse == null){
-			return;
-		}
+	public static void setTwoFactorInvalid(Request request, Response response) {
+		final ChallengeResponse challengeResponse = request.getChallengeResponse();
+		challengeResponse.getParameters().removeAll(FIELD_TWO_FACTOR_VALIDATED);
+		challengeResponse.getParameters().removeAll(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER);
 
-		challengeResponse.getParameters().set(FIELD_SSO_SESSION_VALID, "true");
+		CookieAuthenticator.setEncryptedCookieFromChallengeResponse(request, response, CookieAuthenticator.getAuthenticationHelper(request));
 	}
-	
-	
 
 	public static boolean isImpersonating(ChallengeResponse challengeResponse){
 		if (challengeResponse == null){
@@ -557,10 +435,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			return false;
 		}
 		
-		if (isSsoAuthenticated(challengeResponse)){
-			return isSsoSessionValid(challengeResponse);
-		}
-		else if (StringUtils.isNotBlank(challengeResponse.getIdentifier())){
+		if (StringUtils.isNotBlank(challengeResponse.getIdentifier())){
 			final boolean passwordExpired = Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_PASSWORD_EXPIRED, "false"));
 			if (passwordExpired){
 				return false;

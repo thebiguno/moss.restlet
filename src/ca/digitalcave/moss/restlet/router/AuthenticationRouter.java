@@ -19,10 +19,6 @@ import ca.digitalcave.moss.restlet.resource.PasswordCheckResource;
 import ca.digitalcave.moss.restlet.resource.PasswordExpiredResource;
 import ca.digitalcave.moss.restlet.resource.RegisterResource;
 import ca.digitalcave.moss.restlet.resource.ResetPasswordResource;
-import ca.digitalcave.moss.restlet.resource.SamlAssertionConsumerServiceResource;
-import ca.digitalcave.moss.restlet.resource.SamlLogoutResource;
-import ca.digitalcave.moss.restlet.resource.SamlMetadataResource;
-import ca.digitalcave.moss.restlet.resource.SamlSingleLogoutResource;
 import ca.digitalcave.moss.restlet.resource.TotpSetupResource;
 import ca.digitalcave.moss.restlet.resource.TotpTokenResource;
 import ca.digitalcave.moss.restlet.resource.ui.UIFreemarkerResource;
@@ -56,11 +52,6 @@ public class AuthenticationRouter extends Router {
 			this.attach("/forgotUsername", ForgotUsernameResource.class);	//POST email address to send list of user name(s) associated with the email address to the email.
 		}
 		this.attach("/checkPassword", PasswordCheckResource.class);
-		
-		this.attach("/saml/{ssoProviderId}/acs", SamlAssertionConsumerServiceResource.class);
-		this.attach("/saml/{ssoProviderId}/sls", SamlSingleLogoutResource.class);
-		this.attach("/saml/{ssoProviderId}/metadata", SamlMetadataResource.class);
-		this.attach("/saml/{ssoProviderId}/logout", SamlLogoutResource.class);		//GET to logout from SAML and delete cookie - this is the URL you should request from the UI
 		
 		this.attachDefault(UIFreemarkerResource.class);
 	}

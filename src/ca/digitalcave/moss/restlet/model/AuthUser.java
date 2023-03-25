@@ -30,14 +30,10 @@ public class AuthUser extends User implements Serializable {
 	private boolean passwordChangeRequired;
 	private Date passwordLastChanged;
 	
-	private boolean twoFactorPromptForPassword;
-	private boolean twoFactorPromptForSso;
-	private boolean twoFactorRequiredForPassword;
-	private boolean twoFactorRequiredForSso;
+	private boolean twoFactorRequired;
 	private String twoFactorSecret;
 	
 	private List<String> twoFactorBackupCodes;
-	private List<String> ssoIdentifiers;
 	
 	private Integer version;
 	private Date created;
@@ -70,29 +66,11 @@ public class AuthUser extends User implements Serializable {
 	public boolean isTwoFactorSetup() {
 		return StringUtils.isNotBlank(twoFactorSecret);
 	}
-	public boolean isTwoFactorPromptForPassword() {
-		return twoFactorPromptForPassword;
+	public boolean isTwoFactorRequired() {
+		return twoFactorRequired;
 	}
-	public void setTwoFactorPromptForPassword(boolean twoFactorPromptForPassword) {
-		this.twoFactorPromptForPassword = twoFactorPromptForPassword;
-	}
-	public boolean isTwoFactorPromptForSso() {
-		return twoFactorPromptForSso;
-	}
-	public void setTwoFactorPromptForSso(boolean twoFactorPromptForSso) {
-		this.twoFactorPromptForSso = twoFactorPromptForSso;
-	}
-	public boolean isTwoFactorRequiredForPassword() {
-		return twoFactorRequiredForPassword;
-	}
-	public void setTwoFactorRequiredForPassword(boolean twoFactorRequiredForPassword) {
-		this.twoFactorRequiredForPassword = twoFactorRequiredForPassword;
-	}
-	public boolean isTwoFactorRequiredForSso() {
-		return twoFactorRequiredForSso;
-	}
-	public void setTwoFactorRequiredForSso(boolean twoFactorRequiredForSso) {
-		this.twoFactorRequiredForSso = twoFactorRequiredForSso;
+	public void setTwoFactorRequired(boolean twoFactorRequired) {
+		this.twoFactorRequired = twoFactorRequired;
 	}
 	public String getTwoFactorSecret() {
 		return twoFactorSecret;
@@ -105,12 +83,6 @@ public class AuthUser extends User implements Serializable {
 	}
 	public void setTwoFactorBackupCodes(List<String> twoFactorBackupCodes) {
 		this.twoFactorBackupCodes = twoFactorBackupCodes;
-	}
-	public List<String> getSsoIdentifiers() {
-		return ssoIdentifiers;
-	}
-	public void setSsoIdentifiers(List<String> ssoIdentifiers) {
-		this.ssoIdentifiers = ssoIdentifiers;
 	}
 	public Integer getVersion() {
 		return version;
@@ -212,12 +184,8 @@ public class AuthUser extends User implements Serializable {
 		target.setPasswordHash(this.getPasswordHash());
 		target.setPasswordLastChanged(this.getPasswordLastChanged());
 		target.setSecret(this.getSecret());
-		target.setSsoIdentifiers(this.getSsoIdentifiers());
 		target.setTwoFactorBackupCodes(this.getTwoFactorBackupCodes());
-		target.setTwoFactorPromptForPassword(this.isTwoFactorPromptForPassword());
-		target.setTwoFactorPromptForSso(this.isTwoFactorPromptForSso());
-		target.setTwoFactorRequiredForPassword(this.isTwoFactorRequiredForPassword());
-		target.setTwoFactorRequiredForSso(this.isTwoFactorRequiredForSso());
+		target.setTwoFactorRequired(this.isTwoFactorRequired());
 		target.setTwoFactorSecret(this.getTwoFactorSecret());
 		target.setVersion(this.getVersion());
 		

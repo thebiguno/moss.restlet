@@ -6,6 +6,7 @@ import org.restlet.data.ChallengeResponse;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
+import org.restlet.representation.EmptyRepresentation;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
@@ -112,5 +113,20 @@ public class TotpSetupResource extends ServerResource {
 		getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
 		
 		return new StringRepresentation("{\"success\": false}", MediaType.APPLICATION_JSON);
+	}
+	
+	@Override
+	protected Representation delete(Variant variant) throws ResourceException {
+		final ChallengeResponse cr = getChallengeResponse();
+		final String identifier = cr.getIdentifier();
+		if (identifier == null) {
+			throw new ResourceException(Status.CLIENT_ERROR_NOT_FOUND);
+		}
+		
+		final AuthenticationHelper helper = CookieAuthenticator.getAuthenticationHelper(getRequest());
+		helper.disableTotp(identifier);
+		CookieAuthenticator.setTwoFactorInvalid(getRequest(), getResponse());
+		
+		return new EmptyRepresentation();
 	}
 }

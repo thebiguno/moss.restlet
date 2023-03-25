@@ -139,18 +139,6 @@ Ext.define('Login.view.LoginPanel', {
 					]
 				},
 				{
-					"itemId": "totpPromptSetup",
-					"items": [
-						{ "xtype": "label", "html": "${i18n("TWO_FACTOR_PROMPT_SETUP_LABEL")?json_string}"},
-						{ "xtype": "transientlabel", "itemId": "messageTwoFactorPromptSetup" }
-					],
-					"buttons": [
-						{ "text": "${i18n("NO_BUTTON")?json_string}", "itemId": "totpPromptSetupNo" },
-						{ "text": "${i18n("DONT_ASK_BUTTON")?json_string}", "itemId": "totpPromptSetupDontAsk" },
-						{ "text": "${i18n("YES_BUTTON")?json_string}", "itemId": "totpPromptSetupYes" }
-					]
-				},
-				{
 					"itemId": "totpSetup",
 					"items": [
 						{ "xtype": "panel", "itemId": "qrCodeSecret", "height": 350, "border": false},
@@ -162,6 +150,7 @@ Ext.define('Login.view.LoginPanel', {
 					],
 					"buttons": [
 						{ "text": "${i18n("BACK_BUTTON")?json_string}", "itemId": "back" },
+						{ "text": "${i18n("CANCEL_TOTP")?json_string}", "itemId": "totpDisable" },
 						{ "text": "${i18n("RELOAD")?json_string}", "itemId": "totpLoadSecret" },
 						{ "text": "${i18n("SUBMIT")?json_string}", "itemId": "totpSetupVerify" }
 					]

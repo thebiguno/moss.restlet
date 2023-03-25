@@ -38,21 +38,8 @@ public abstract class CookieVerifier implements Verifier {
 					if (user.isTwoFactorSetup()){
 						CookieAuthenticator.setTwoFactorSetup(cr);
 					}
-					if (CookieAuthenticator.isSsoAuthenticated(cr)){
-						if (user.isTwoFactorPromptForSso()){
-							CookieAuthenticator.setTwoFactorPrompt(cr);
-						}
-						if (user.isTwoFactorRequiredForSso()){
-							CookieAuthenticator.setTwoFactorRequired(cr);
-						}
-					}
-					else {
-						if (user.isTwoFactorPromptForPassword()){
-							CookieAuthenticator.setTwoFactorPrompt(cr);
-						}
-						if (user.isTwoFactorRequiredForPassword()){
-							CookieAuthenticator.setTwoFactorRequired(cr);
-						}
+					if (user.isTwoFactorRequired()){
+						CookieAuthenticator.setTwoFactorRequired(cr);
 					}
 				}
 				
