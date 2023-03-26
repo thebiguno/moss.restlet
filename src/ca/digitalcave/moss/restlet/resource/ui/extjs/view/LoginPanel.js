@@ -13,7 +13,7 @@ Ext.define('Login.view.LoginPanel', {
 			"pack": "start"
 		},
 		"defaults": {
-			"width": "100px"
+			"width": "150px"
 		}
 	},
 	"defaults": {
