@@ -16,7 +16,6 @@ Ext.define("Login.controller.LoginController", {
 			//Login - credentials, TOTP, expired password
 			"login button[itemId='authenticate']": { "click": this.authenticate },
 			"login panel[itemId='authenticate'] form textfield": { "keypress": this.authenticate },
-			"login panel[itemId='ssoProviders'] button": { "click": this.samlLogin },
 			
 			"login button[itemId='passwordExpired']": { "click": this.passwordExpired },
 			"login form[itemId='passwordExpired'] textfield": { "keypress": this.passwordExpired },
@@ -81,16 +80,6 @@ Ext.define("Login.controller.LoginController", {
 					}
 				}
 			});
-		}
-	},
-	
-	"samlLogin": function(button){
-		var ssoProviderId = button.ssoProviderId;
-		if (ssoProviderId){
-			window.location.href = "authentication/login?ssoProviderId=" + ssoProviderId + "&relayState=" + encodeURIComponent(window.location);
-		}
-		else {
-			;	//This should never happen...
 		}
 	},
 	

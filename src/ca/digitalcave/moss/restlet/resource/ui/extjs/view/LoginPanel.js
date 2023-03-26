@@ -100,18 +100,6 @@ Ext.define('Login.view.LoginPanel', {
 								{ "text": "${i18n("LOGIN_LABEL")?json_string}", "itemId": "authenticate" }
 							]
 						}
-						<#if showSSO!false>
-						, {
-							"xtype": "panel",
-							"border": false,
-							"itemId": "ssoProviders",
-							"items": [
-								<#list ssoProviders! as ssoProvider>
-								{"xtype": "button", "text": "${i18n("SAML_LOGIN_LABEL")?json_string} ${ssoProvider.description}", "ssoProviderId": "${ssoProvider.uuid}", "width": "100%", "margin": "5px"},
-								</#list>
-							]
-						}
-						</#if>
 					]
 				},
 				{
