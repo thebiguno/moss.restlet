@@ -33,6 +33,11 @@ public class AuthenticationConfiguration implements Cloneable {
 	 */
 	public boolean showRemember = true;
 	
+	/**
+	 * Show the 'disable IP lock' on login panel
+	 */
+	public boolean showDisableIpLock = false;
+	
 	
 	/**
 	 * Show the 'Mobile version' link on the login page.

@@ -38,6 +38,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	public static final String FIELD_IMPERSONATE = "impersonate";							//The user who is being impersonated.  This needs to be set in the form POST for the initial request, and will be added to the ChallengeResponse properties for convenience.
 	public static final String FIELD_PASSWORD = "password";									//The password of the authenticator
 	public static final String FIELD_REMEMBER = "remember";
+	public static final String FIELD_DISABLE_IP_LOCK = "disableIpLock";
 	public static final String FIELD_EMAIL = "email";										//The email address.  Used for 'Forgot username' request.
 	public static final String FIELD_ACTIVATION_KEY = "activationKey";						//The activation key.  Used for 'Reset Password' request.
 	public static final String FIELD_TIME_ISSUED = "timeIssued";
@@ -191,8 +192,10 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 				return null;
 			}
 			
+			final boolean disableIpLock = Boolean.parseBoolean(p.getFirstValue(FIELD_DISABLE_IP_LOCK, "false"));
 			final String clientAddress = p.getFirstValue(FIELD_CLIENT_ADDRESS, "");
-			if (StringUtils.isNotBlank(clientAddress) && !StringUtils.equals(clientAddress, getClientAddress(request))){
+			//Validate the IP lock, if applicable
+			if (!disableIpLock && StringUtils.isNotBlank(clientAddress) && !StringUtils.equals(clientAddress, getClientAddress(request))){
 				return null;
 			}
 
@@ -208,6 +211,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 				result.getParameters().set(FIELD_AUTHENTICATOR, p.getFirstValue(FIELD_AUTHENTICATOR));
 			}
 			result.getParameters().set(FIELD_REMEMBER, p.getFirstValue(FIELD_REMEMBER, "false"));
+			result.getParameters().set(FIELD_DISABLE_IP_LOCK, p.getFirstValue(FIELD_DISABLE_IP_LOCK, "false"));
 			result.getParameters().set(FIELD_CLIENT_ADDRESS, clientAddress);
 			
 			result.getParameters().set(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER, p.getFirstValue(FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER));
@@ -230,11 +234,15 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		final Form p = new Form();
 		long expiryTimeMillis;
 		final boolean remember = Boolean.parseBoolean(cr.getParameters().getFirstValue(FIELD_REMEMBER, "false"));
+		final boolean disableIpLock = Boolean.parseBoolean(cr.getParameters().getFirstValue(FIELD_DISABLE_IP_LOCK, "false"));
 		p.set(FIELD_REMEMBER, Boolean.toString(remember));
+		p.set(FIELD_DISABLE_IP_LOCK, Boolean.toString(disableIpLock));
 		if (ipLock){
 			//If ipLock is false, we don't set the client address field.  This means that the cookie will be valid for any IP.  This is a security risk, but it is mitigated by
 			// the fact that the expiry timeout is 30 seconds in the future.
-			p.set(FIELD_CLIENT_ADDRESS, getClientAddress(request));
+			if (!disableIpLock) {
+				p.set(FIELD_CLIENT_ADDRESS, getClientAddress(request));
+			}
 			
 			if (remember){
 				expiryTimeMillis = 30l * 24 * 60 * 60 * 1000;	//If "Remember me" is set, the cookie is valid for 30 days

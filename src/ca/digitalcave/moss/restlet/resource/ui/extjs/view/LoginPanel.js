@@ -3,7 +3,8 @@ Ext.define('Login.view.LoginPanel', {
 	"alias": "widget.login",
 	"requires": [
 		"Login.view.TransientLabel",
-		"Login.view.PasswordField"
+		"Login.view.PasswordField",
+		"Login.view.SelfDocumentingField"
 	],
 	"border": false,
 	"renderTo": "loginform",
@@ -91,7 +92,10 @@ Ext.define('Login.view.LoginPanel', {
 								{ "fieldLabel": "${i18n("IDENTIFIER_LABEL")?json_string}", "name": "identifier", "listeners": { "afterrender": function(component){ component.focus(); } } },
 								{ "fieldLabel": "${i18n("PASSWORD_LABEL")?json_string}", "name": "password", "inputType": "password" },
 								<#if showRemember!true>
-								{ "fieldLabel": "${i18n("REMEMBER_LABEL")?json_string}", "xtype": "checkbox", "name": "remember" },
+								{ "xtype": "selfdocumentingfield", "messageBody": "${i18n("REMEMBER_HELP")?json_string}", "fieldLabel": "${i18n("REMEMBER_LABEL")?json_string}", "type": "checkbox", "name": "remember" },
+								</#if>
+								<#if showDisableIpLock!true>
+								{ "xtype": "selfdocumentingfield", "messageBody": "${i18n("DISABLE_IP_LOCK_HELP")?json_string}", "fieldLabel": "${i18n("DISABLE_IP_LOCK_LABEL")?json_string}", "type": "checkbox", "name": "disableIpLock" },
 								</#if>
 								<#if extraLoginStep1Fields??><@extraLoginStep1Fields/></#if>
 								{ "xtype": "transientlabel", "itemId": "messageLogin1" }

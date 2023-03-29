@@ -52,6 +52,9 @@ public class LoginResource extends ServerResource {
 				if ("on".equals(form.getFirstValue(CookieAuthenticator.FIELD_REMEMBER))){
 					cr.getParameters().set(CookieAuthenticator.FIELD_REMEMBER, "true");
 				}
+				if ("on".equals(form.getFirstValue(CookieAuthenticator.FIELD_DISABLE_IP_LOCK))){
+					cr.getParameters().set(CookieAuthenticator.FIELD_DISABLE_IP_LOCK, "true");
+				}
 				getRequest().setChallengeResponse(cr);
 				CookieAuthenticator.setEncryptedCookieFromChallengeResponse(getRequest(), getResponse(), helper);
 				
