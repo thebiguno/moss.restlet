@@ -99,7 +99,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	protected boolean authenticate(Request request, Response response) {
 		final Cookie cookie = request.getCookies().getFirst(authenticationHelper.getCookieName());
 		final ChallengeResponse cr = getChallengeResponseFromEncryptedCookie(cookie, request, authenticationHelper);
-		if (cr != null){
+		if (!isOptional()){
 			request.setChallengeResponse(cr);
 		}
 
@@ -435,7 +435,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	
 	/**
 	 * Returns true if the primary authentication checks have returned true.  This means that one of the following has succeeded:
-	 *  - Username / Password verified (and password not required)
+	 *  - Username / Password verified (and password not expired)
 	 *  - SSO validated
 	 */
 	public static boolean isPrimaryAuthenticationValid(ChallengeResponse challengeResponse){
@@ -443,7 +443,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			return false;
 		}
 		
-		if (StringUtils.isNotBlank(challengeResponse.getIdentifier())){
+		if (StringUtils.isNotBlank(challengeResponse.getParameters().getFirstValue(FIELD_IDENTIFIER))){
 			final boolean passwordExpired = Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_PASSWORD_EXPIRED, "false"));
 			if (passwordExpired){
 				return false;
