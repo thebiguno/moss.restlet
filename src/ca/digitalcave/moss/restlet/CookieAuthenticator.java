@@ -99,7 +99,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	protected boolean authenticate(Request request, Response response) {
 		final Cookie cookie = request.getCookies().getFirst(authenticationHelper.getCookieName());
 		final ChallengeResponse cr = getChallengeResponseFromEncryptedCookie(cookie, request, authenticationHelper);
-		if (!isOptional()){
+		if (cr != null || !isOptional()){
 			request.setChallengeResponse(cr);
 		}
 
@@ -443,7 +443,7 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 			return false;
 		}
 		
-		if (StringUtils.isNotBlank(challengeResponse.getParameters().getFirstValue(FIELD_IDENTIFIER))){
+		if (StringUtils.isNotBlank(challengeResponse.getIdentifier()) && challengeResponse.getScheme().equals(ChallengeScheme.HTTP_COOKIE)){
 			final boolean passwordExpired = Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_PASSWORD_EXPIRED, "false"));
 			if (passwordExpired){
 				return false;
